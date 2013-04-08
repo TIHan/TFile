@@ -60,6 +60,6 @@ int T_SocketNonBlocking( const SOCKET socket ) {
 	u_long argp = 1;
 	return ioctlsocket( socket, FIONBIO, &argp );
 #else
-	return fcntl( fileServer.socket, F_SETFL, O_NONBLOCK );
+	return fcntl( socket, F_SETFL, O_NONBLOCK );
 #endif
 }

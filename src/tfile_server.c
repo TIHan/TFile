@@ -43,16 +43,12 @@ static fileServer_t file_server;
 /*
 ====================
 CreateFileServer
+
+Passing in the port as a string might be ok, instead of trying to convert
+an integer to a string.
 ====================
 */
-static fileServer_t CreateFileServer( const int family ) {
-// Apple needs to have the server be "0" if we are trying to host.
-#ifdef __APPLE__
-	const char* service = "0";
-#else
-	const char* service = "";
-#endif
-
+static fileServer_t CreateFileServer( const int family, const char *port ) {
 	struct addrinfo hints, *result;
 	fileServer_t fileServer;
 
@@ -61,19 +57,19 @@ static fileServer_t CreateFileServer( const int family ) {
 		T_Error( "CreateFileServer: Bad socket family type." );
 	}
 
-	fileServer.socket = INVALID_SOCKET;
-
+	memset( &fileServer.info, 0, sizeof( fileServer.info ) );
 	memset( &hints, 0, sizeof( hints ) );
+
+	fileServer.socket = INVALID_SOCKET;
 	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if ( getaddrinfo( 0, service, &hints, &result ) == SOCKET_ERROR ) {
+	if ( getaddrinfo( 0, port, &hints, &result ) == SOCKET_ERROR ) {
 		T_Error( "CreateFileServer: Unable to get address information." );
 	}
 
 	for ( ; result != 0; result = result->ai_next ) {
-		// If the family is unspecified, get the first one in the linked list.
 		if ( result->ai_family == family ) {
 			fileServer.socket = T_socket( result->ai_family, result->ai_socktype, result->ai_protocol );
 			break;
@@ -108,11 +104,12 @@ static fileServer_t CreateFileServer( const int family ) {
 TFile_InitFileServer
 ====================
 */
-void TFile_InitFileServer( void ) {
+void TFile_InitFileServer( const char *port ) {
 	if ( file_server_initialized ) {
 		T_Error( "TFile_InitFileServer: File server is already initialized." );
+		return;
 	}
-	file_server = CreateFileServer( AF_INET );
+	file_server = CreateFileServer( AF_INET, "29760" );
 	file_server_initialized = ttrue;
 	T_Print( "File server initialized.\n" );
 }
@@ -126,6 +123,7 @@ TFile_ShutdownFileServer
 void TFile_ShutdownFileServer( void ) {
 	if ( closesocket( file_server.socket ) == SOCKET_ERROR ) {
 		T_Error( "TFile_ShutdownFileServer: Unable to close file server socket." );
+		return;
 	}
 	file_server_initialized = tfalse;
 	file_server_running = tfalse;

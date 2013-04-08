@@ -38,7 +38,7 @@ int main( void ) {
 #ifdef _WIN32
 	TFile_InitWinsock();
 #endif
-	TFile_InitFileServer();
+	TFile_InitFileServer( "27960" );
 	TFile_ShutdownFileServer();
 	T_getchar();
 }
