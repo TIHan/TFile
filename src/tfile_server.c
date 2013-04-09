@@ -27,7 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_server.h"
 
-#include "t_common.h"
 #include "t_socket.h"
 
 typedef struct fileServer_s {
@@ -43,75 +42,68 @@ static fileServer_t file_server;
 /*
 ====================
 CreateFileServer
-
-Passing in the port as a string might be ok, instead of trying to convert
-an integer to a string.
 ====================
 */
-static fileServer_t CreateFileServer( const int family, const char *port ) {
+static tboolean CreateFileServer( const int family, const char *port, fileServer_t *fileServer ) {
+	const char *error = NULL;
 	struct addrinfo hints, *result;
-	fileServer_t fileServer;
 
 	// We can only create file servers for ipv4 and ipv6.
 	if ( family != AF_INET && family != AF_INET6 ) {
-		T_Error( "CreateFileServer: Bad socket family type." );
+		T_FatalError( "CreateFileServer: Bad socket family type." );
 	}
 
-	memset( &fileServer.info, 0, sizeof( fileServer.info ) );
+	memset( &fileServer->info, 0, sizeof( fileServer->info ) );
 	memset( &hints, 0, sizeof( hints ) );
 
-	fileServer.socket = INVALID_SOCKET;
+	fileServer->socket = INVALID_SOCKET;
 	hints.ai_family = family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
 	if ( getaddrinfo( 0, port, &hints, &result ) == SOCKET_ERROR ) {
-		T_Error( "CreateFileServer: Unable to get address information." );
+		T_Error( "CreateFileServer: Unable to get address information.\n" );
+		return tfalse;
 	}
 
 	for ( ; result != 0; result = result->ai_next ) {
 		if ( result->ai_family == family ) {
-			fileServer.socket = T_socket( result->ai_family, result->ai_socktype, result->ai_protocol );
+			fileServer->socket = T_socket( result->ai_family, result->ai_socktype, result->ai_protocol );
 			break;
 		}
 	}
 
-	if ( fileServer.socket == INVALID_SOCKET ) {
-		freeaddrinfo( result );
-		T_Error( "CreateFileServer: Unable to create socket." );
+	if ( fileServer->socket == INVALID_SOCKET ) {
+		error = "CreateFileServer: Unable to create socket.\n";
+		goto error;
 	}
 
-	fileServer.info = *result;
+	fileServer->info = *result;
 
-	if ( T_SocketNonBlocking( fileServer.socket ) == SOCKET_ERROR ) {
-		T_Error( "CreateFileServer: Unable to make socket non-blocking." );
+	if ( T_SocketNonBlocking( fileServer->socket ) == SOCKET_ERROR ) {
+		error = "CreateFileServer: Unable to make socket non-blocking.\n";
+		goto error;
 	}
-	if ( T_SocketReuseAddress( fileServer.socket ) == SOCKET_ERROR ) {
-		T_Error( "CreateFileServer: Unable to set socket to reuse address." );
+	if ( T_SocketReuseAddress( fileServer->socket ) == SOCKET_ERROR ) {
+		error = "CreateFileServer: Unable to set socket to reuse address.\n";
+		goto error;
 	}
 
-	if ( bind( fileServer.socket, fileServer.info.ai_addr, fileServer.info.ai_addrlen ) == SOCKET_ERROR ) {
-		T_Error( "CreateFileServer: Unable to bind socket." );
+	if ( bind( fileServer->socket, fileServer->info.ai_addr, fileServer->info.ai_addrlen ) == SOCKET_ERROR ) {
+		error = "CreateFileServer: Unable to bind socket.\n";
+		goto error;
 	}
 
 	freeaddrinfo( result );
-	return fileServer;
-}
+	return ttrue;
 
+error:
 
-/*
-====================
-TFile_InitFileServer
-====================
-*/
-void TFile_InitFileServer( const char *port ) {
-	if ( file_server_initialized ) {
-		T_Error( "TFile_InitFileServer: File server is already initialized." );
-		return;
+	if ( result ) {
+		freeaddrinfo( result );
 	}
-	file_server = CreateFileServer( AF_INET, "29760" );
-	file_server_initialized = ttrue;
-	T_Print( "File server initialized.\n" );
+	T_Error( error );
+	return tfalse;
 }
 
 
@@ -121,11 +113,30 @@ TFile_ShutdownFileServer
 ====================
 */
 void TFile_ShutdownFileServer( void ) {
-	if ( closesocket( file_server.socket ) == SOCKET_ERROR ) {
-		T_Error( "TFile_ShutdownFileServer: Unable to close file server socket." );
-		return;
-	}
 	file_server_initialized = tfalse;
 	file_server_running = tfalse;
+	if ( closesocket( file_server.socket ) == SOCKET_ERROR ) {
+		T_Error( "TFile_ShutdownFileServer: Unable to close file server socket.\n" );
+		return;
+	}
 	T_Print( "File server shutdown.\n" );
+}
+
+
+/*
+====================
+TFile_InitFileServer
+====================
+*/
+tboolean TFile_InitFileServer( const char *port ) {
+	if ( file_server_initialized ) {
+		T_FatalError( "TFile_InitFileServer: File server is already initialized." );
+	}
+	if ( !CreateFileServer( AF_INET, "29760", &file_server ) ) {
+		T_Error( "TFile_InitFileServer: Unable to initialize file server.\n" );
+		return tfalse;
+	}
+	file_server_initialized = ttrue;
+	T_Print( "File server initialized.\n" );
+	return ttrue;
 }

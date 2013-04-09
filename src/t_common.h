@@ -25,6 +25,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _T_COMMON_H_
+#define _T_COMMON_H_
+
 typedef unsigned char byte;
 
 typedef enum {
@@ -32,8 +35,11 @@ typedef enum {
 	ttrue
 } tboolean;
 
+void T_FatalError( const char *format, ... );
 void T_Error( const char *format, ... );
 void T_Print( const char *format, ... );
 
 char *T_itoa( int value, char *buffer );
 int T_getchar( void );
+
+#endif // _T_COMMON_H_

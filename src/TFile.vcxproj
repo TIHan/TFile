@@ -67,10 +67,12 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="tfile.c" />
     <ClCompile Include="tfile_server.c" />
+    <ClCompile Include="tinycthread.c" />
     <ClCompile Include="t_common.c" />
     <ClCompile Include="t_socket.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="tinycthread.h" />
     <ClInclude Include="t_common.h" />
     <ClInclude Include="tfile_client.h" />
     <ClInclude Include="tfile_server.h" />

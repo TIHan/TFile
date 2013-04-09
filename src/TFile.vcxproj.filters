@@ -30,6 +30,9 @@
     <ClCompile Include="tfile.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tinycthread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tfile_server.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tinycthread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

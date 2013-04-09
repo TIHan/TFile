@@ -29,12 +29,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 #include <stdlib.h>
 
+
 /*
 ====================
-Error
+T_FatalError
 ====================
 */
-void T_Error( const char *format, ... ) {
+void T_FatalError( const char *format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -48,7 +49,21 @@ void T_Error( const char *format, ... ) {
 
 /*
 ====================
-Print
+T_Error
+====================
+*/
+void T_Error( const char *format, ... ) {
+	va_list list;
+
+	va_start( list, format );
+	fprintf( stderr, format, list );
+	va_end( list );
+}
+
+
+/*
+====================
+T_Print
 ====================
 */
 void T_Print( const char *format, ... ) {
