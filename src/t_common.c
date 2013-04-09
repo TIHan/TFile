@@ -35,7 +35,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 T_FatalError
 ====================
 */
-void T_FatalError( const char *format, ... ) {
+void T_FatalError( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -52,7 +52,7 @@ void T_FatalError( const char *format, ... ) {
 T_Error
 ====================
 */
-void T_Error( const char *format, ... ) {
+void T_Error( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -66,7 +66,7 @@ void T_Error( const char *format, ... ) {
 T_Print
 ====================
 */
-void T_Print( const char *format, ... ) {
+void T_Print( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );

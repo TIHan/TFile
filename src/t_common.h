@@ -35,9 +35,9 @@ typedef enum {
 	ttrue
 } tboolean;
 
-void T_FatalError( const char *format, ... );
-void T_Error( const char *format, ... );
-void T_Print( const char *format, ... );
+void T_FatalError( const char *const format, ... );
+void T_Error( const char *const format, ... );
+void T_Print( const char *const format, ... );
 
 char *T_itoa( int value, char *buffer );
 int T_getchar( void );

@@ -28,4 +28,4 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "t_common.h"
 
 void TFile_ShutdownFileServer( void );
-tboolean TFile_InitFileServer( const char *port );
+tboolean TFile_InitFileServer( const char *const port );

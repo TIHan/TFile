@@ -44,7 +44,7 @@ static fileServer_t file_server;
 CreateFileServer
 ====================
 */
-static tboolean CreateFileServer( const int family, const char *port, fileServer_t *fileServer ) {
+static tboolean CreateFileServer( const int family, const char *const port, fileServer_t *const fileServer ) {
 	const char *error = NULL;
 	struct addrinfo hints, *result;
 
@@ -128,7 +128,7 @@ void TFile_ShutdownFileServer( void ) {
 TFile_InitFileServer
 ====================
 */
-tboolean TFile_InitFileServer( const char *port ) {
+tboolean TFile_InitFileServer( const char *const port ) {
 	if ( file_server_initialized ) {
 		T_FatalError( "TFile_InitFileServer: File server is already initialized." );
 	}
