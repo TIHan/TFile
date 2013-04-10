@@ -42,4 +42,4 @@ void T_Print( const char *const format, ... );
 char *T_itoa( int value, char *buffer );
 int T_getchar( void );
 
-#endif // _T_COMMON_H_
+#endif // _T_COMMON_H_'
