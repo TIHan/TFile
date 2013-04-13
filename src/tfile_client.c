@@ -27,26 +27,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_client.h"
 
-#include "t_socket.h"
+#include "tfile_shared.h"
 #include "tinycthread.h"
 
 static SOCKET file_client_socket;
-
-/*
-====================
-CleanupFailedFileServer
-====================
-*/
-static void CleanupFailedFileServer( const char *const error, const SOCKET socket, struct addrinfo *const info ) {
-	if ( info ) {
-		freeaddrinfo( info );
-	}
-	if ( socket != INVALID_SOCKET ) {
-		// I think it's ok to try to close the socket if there was a problem.
-		closesocket( socket );
-	}
-	T_Error( error );
-}
 
 
 /*
@@ -77,26 +61,26 @@ static tboolean CreateFileClient( const char *const ip, const char *const port, 
 
 	// Get address info.
 	if ( getaddrinfo( ip, port, &hints, &result ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Attempt to create a socket.
 	*client = T_CreateSocket( AF_UNSPEC, result );
 	if ( *client == INVALID_SOCKET ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Connect to remote host.
 	if ( connect( *client, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "ConnectFileServer: Unable to connect to remote host.\n", *client, result );
+		TFile_CleanupFailedSocket( "ConnectFileServer: Unable to connect to remote host.\n", *client, result );
 		return tfalse;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *client ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to set sock to non-blocking.\n", *client, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set sock to non-blocking.\n", *client, result );
 		return tfalse;
 	}
 
@@ -114,5 +98,7 @@ TFile_ConnectFileServer
 tboolean TFile_ConnectFileServer( const char *ip, const char *port ) {
 	if ( CreateFileClient( ip, port, &file_client_socket ) ) {
 		T_Print( "Successfully connected.\n" );
+		return ttrue;
 	}
+	return tfalse;
 }

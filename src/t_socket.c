@@ -116,7 +116,7 @@ tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, 
 		return tfalse;
 
 	for( i = 0; i < size; ++i ) {
-		if ( sockets[i] == INVALID_SOCKET )
+		if ( sockets[i] == 0 )
 			continue;
 
 		if ( FD_ISSET( sockets[i], &readSet ) ) {

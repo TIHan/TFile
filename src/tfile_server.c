@@ -27,7 +27,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_server.h"
 
-#include "t_socket.h"
+#include "tfile_shared.h"
 #include "tinycthread.h"
 
 typedef struct fileServerInfo_s {
@@ -46,23 +46,6 @@ static tboolean file_server_initialized = tfalse;
 static tboolean file_server_running = tfalse;
 static fileServer_t file_server;
 static thrd_t file_server_thread;
-
-
-/*
-====================
-CleanupFailedFileServer
-====================
-*/
-static void CleanupFailedFileServer( const char *const error, const SOCKET socket, struct addrinfo *const info ) {
-	if ( info ) {
-		freeaddrinfo( info );
-	}
-	if ( socket != INVALID_SOCKET ) {
-		// I think it's ok to try to close the socket if there was a problem.
-		closesocket( socket );
-	}
-	T_Error( error );
-}
 
 
 /*
@@ -119,33 +102,33 @@ static tboolean CreateFileServer( const int family, const char *const port, file
 
 	// Get address info.
 	if ( getaddrinfo( 0, port, &hints, &result ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Attempt to create a socket.
 	fileServer->socket = T_CreateSocket( family, result );
 	if ( fileServer->socket == INVALID_SOCKET ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Get file server info.
 	fileServer->info = GetFileServerInfo( family, result );
 	if ( bind( fileServer->socket, &fileServer->info.ai_addr, fileServer->info.ai_addrlen ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to bind socket.\n", fileServer->socket, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to bind socket.\n", fileServer->socket, result );
 		return tfalse;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( fileServer->socket ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to set sock to non-blocking.\n", fileServer->socket, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set sock to non-blocking.\n", fileServer->socket, result );
 		return tfalse;
 	}
 
 	// Set socket to reuse address.
 	if ( T_SocketReuseAddress( fileServer->socket ) == SOCKET_ERROR ) {
-		CleanupFailedFileServer( "CreateFileServer: Unable to set socket to reuse address.\n", fileServer->socket, result );
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set socket to reuse address.\n", fileServer->socket, result );
 		return tfalse;
 	}
 

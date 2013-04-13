@@ -36,6 +36,9 @@
     <ClCompile Include="tfile_client.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tfile_shared.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tfile_server.h">

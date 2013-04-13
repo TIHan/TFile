@@ -25,6 +25,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "t_socket.h"
+#include "tfile_shared.h"
 
-void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info );
+
+/*
+====================
+TFile_CleanupFailedSocket
+====================
+*/
+void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info ) {
+	if ( info ) {
+		freeaddrinfo( info );
+	}
+	if ( socket != INVALID_SOCKET ) {
+		// I think it's ok to try to close the socket if there was a problem.
+		closesocket( socket );
+	}
+	T_Error( error );
+}

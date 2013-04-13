@@ -68,6 +68,7 @@
     <ClCompile Include="tfile.c" />
     <ClCompile Include="tfile_client.c" />
     <ClCompile Include="tfile_server.c" />
+    <ClCompile Include="tfile_shared.c" />
     <ClCompile Include="tinycthread.c" />
     <ClCompile Include="t_common.c" />
     <ClCompile Include="t_socket.c" />
