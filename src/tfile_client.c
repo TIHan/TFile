@@ -53,7 +53,7 @@ static struct addrinfo CreateFileServerHints( const int family, const int socket
 CreateFileServer
 ====================
 */
-static tboolean CreateFileClient( const char *const ip, const char *const port, SOCKET *const client ) {
+static tboolean CreateFileClient( const char *const ip, const char *const port, SOCKET *const socket ) {
 	const struct addrinfo hints = CreateFileServerHints( AF_UNSPEC, SOCK_STREAM, 0 );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
@@ -66,21 +66,21 @@ static tboolean CreateFileClient( const char *const ip, const char *const port, 
 	}
 
 	// Attempt to create a socket.
-	*client = T_CreateSocket( AF_UNSPEC, result );
-	if ( *client == INVALID_SOCKET ) {
+	*socket = T_CreateSocket( AF_UNSPEC, result );
+	if ( *socket == INVALID_SOCKET ) {
 		TFile_CleanupFailedSocket( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Connect to remote host.
-	if ( connect( *client, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "ConnectFileServer: Unable to connect to remote host.\n", *client, result );
+	if ( connect( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
+		TFile_CleanupFailedSocket( "ConnectFileServer: Unable to connect to remote host.\n", *socket, result );
 		return tfalse;
 	}
 
 	// Set socket to non-blocking.
-	if ( T_SocketNonBlocking( *client ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set sock to non-blocking.\n", *client, result );
+	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
+		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set sock to non-blocking.\n", *socket, result );
 		return tfalse;
 	}
 
