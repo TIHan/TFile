@@ -41,6 +41,7 @@ static tboolean file_server_initialized = tfalse;
 /* Used in threads, TODO: Fix this. */
 static tboolean file_server_running = tfalse;
 static SOCKET file_server_socket;
+static SOCKET file_server_socket6;
 static thrd_t file_server_thread;
 
 
@@ -158,7 +159,7 @@ tboolean TFile_InitFileServer( const char *const port ) {
 	if ( file_server_initialized ) {
 		T_FatalError( "TFile_InitFileServer: File server is already initialized" );
 	}
-	if ( !CreateFileServer( AF_INET, port, &file_server_socket ) ) {
+	if ( !CreateFileServer( AF_INET, port, &file_server_socket ) || !CreateFileServer( AF_INET6, port, &file_server_socket6 ) ) {
 		T_Error( "TFile_InitFileServer: Unable to initialize file server.\n" );
 		return tfalse;
 	}
@@ -175,17 +176,18 @@ FileServerThread
 */
 static int FileServerThread( void *arg ) {
 #define MAX_CONNECTIONS 256
-#define MAX_SOCKETS MAX_CONNECTIONS + 1
+#define MAX_SOCKETS MAX_CONNECTIONS + 2
 #define MAX_BUFFER_SIZE 1024
 
 	const SOCKET server = file_server_socket; // fix me
+	const SOCKET server6 = file_server_socket6; // fix me
 
 	SOCKET connections[MAX_CONNECTIONS] = { 0 };
 	int connectionCount = 0, addrLen = 0;
 	struct sockaddr_storage addr;
 	byte buffer[MAX_BUFFER_SIZE];
 
-	if ( listen( server, 8 ) == SOCKET_ERROR ) {
+	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
 		T_Error( "FileServerThread: Failed to listen on file server socket." );
 		return 0;
 	}
@@ -198,6 +200,7 @@ static int FileServerThread( void *arg ) {
 		int i;
 
 		sockets[0] = server;
+		sockets[1] = server6;
 
 		if ( !T_Select( sockets, MAX_SOCKETS, 1000000, reads ) ) {
 			continue;
@@ -206,6 +209,12 @@ static int FileServerThread( void *arg ) {
 		for( i = 0; i < MAX_SOCKETS; ++i ) {
 			if ( reads[i] == server ) {
 				if ( connections[connectionCount] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) != SOCKET_ERROR ) {
+					++connectionCount;
+					// TODO
+					T_Print( "Client connected.\n" );
+				}
+			} else if ( reads[i] == server6 ) {
+				if ( connections[connectionCount] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) != SOCKET_ERROR ) {
 					++connectionCount;
 					// TODO
 					T_Print( "Client connected.\n" );
