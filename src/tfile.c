@@ -41,7 +41,7 @@ void TFile_InitWinsock( void ) {
 	// Initialize Winsock
 	int result = WSAStartup( MAKEWORD( 2, 2 ), &wsaData );
 	if ( result != 0 ) {
-		T_Error( "Failed to initialize winsock." );
+		T_FatalError( "Failed to initialize winsock." );
 	}
 	T_Print( "Winsock initialized.\n" );
 }

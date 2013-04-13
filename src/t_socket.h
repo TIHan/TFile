@@ -54,3 +54,4 @@ struct addrinfo T_CreateAddressInfo( void );
 int T_SocketReuseAddress( const SOCKET socket );
 int T_SocketNonBlocking( const SOCKET socket );
 tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads );
+struct addrinfo T_CreateHints( const int family, const int socketType, const int flags );

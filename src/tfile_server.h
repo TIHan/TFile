@@ -27,6 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_common.h"
 
-void TFile_ShutdownFileServer( void );
-tboolean TFile_InitFileServer( const char *const port );
-void TFile_StartFileServer( void );
+void TFile_ShutdownServer( void );
+tboolean TFile_InitServer( const char *const port );
+void TFile_StartServer( void );

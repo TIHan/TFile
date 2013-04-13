@@ -30,57 +30,43 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
-static SOCKET file_client_socket;
+static SOCKET client_socket = INVALID_SOCKET;
+static tboolean client_connected = tfalse;
 
 
 /*
 ====================
-CreateHints
+CreateClient
 ====================
 */
-static struct addrinfo CreateFileServerHints( const int family, const int socketType, const int flags ) {
-	struct addrinfo hints = T_CreateAddressInfo();
-
-	hints.ai_family = family;
-	hints.ai_socktype = socketType;
-	hints.ai_flags = flags;
-	return hints;
-}
-
-
-/*
-====================
-CreateFileServer
-====================
-*/
-static tboolean CreateFileClient( const char *const ip, const char *const port, SOCKET *const socket ) {
-	const struct addrinfo hints = CreateFileServerHints( AF_UNSPEC, SOCK_STREAM, 0 );
+static tboolean CreateClient( const char *const ip, const char *const port, SOCKET *const socket ) {
+	const struct addrinfo hints = T_CreateHints( AF_UNSPEC, SOCK_STREAM, 0 );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
 
 	// Get address info.
 	if ( getaddrinfo( ip, port, &hints, &result ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateClient: Unable to get address information.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Attempt to create a socket.
 	*socket = T_CreateSocket( AF_UNSPEC, result );
 	if ( *socket == INVALID_SOCKET ) {
-		TFile_CleanupFailedSocket( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
+		TFile_CleanupFailedSocket( "CreateClient: Unable to create socket.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
 	// Connect to remote host.
 	if ( connect( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "ConnectFileServer: Unable to connect to remote host.\n", *socket, result );
+		TFile_CleanupFailedSocket( "CreateClient: Unable to connect to remote host.\n", *socket, result );
 		return tfalse;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateFileServer: Unable to set sock to non-blocking.\n", *socket, result );
+		TFile_CleanupFailedSocket( "CreateClient: Unable to set sock to non-blocking.\n", *socket, result );
 		return tfalse;
 	}
 
@@ -92,13 +78,23 @@ static tboolean CreateFileClient( const char *const ip, const char *const port, 
 
 /*
 ====================
-TFile_ConnectFileServer
+TFile_Connect
 ====================
 */
-tboolean TFile_ConnectFileServer( const char *ip, const char *port ) {
-	if ( CreateFileClient( ip, port, &file_client_socket ) ) {
+tboolean TFile_Connect( const char *ip, const char *port ) {
+	if ( CreateClient( ip, port, &client_socket ) ) {
 		T_Print( "Successfully connected.\n" );
 		return ttrue;
 	}
 	return tfalse;
+}
+
+
+/*
+====================
+TFile_Disconnect
+====================
+*/
+tboolean TFile_Disconnect( void ) {
+	return ttrue;
 }

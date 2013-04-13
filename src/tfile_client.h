@@ -27,4 +27,4 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_common.h"
 
-tboolean TFile_ConnectFileServer( const char *ip, const char *port );
+tboolean TFile_Connect( const char *ip, const char *port );

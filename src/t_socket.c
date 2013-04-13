@@ -111,7 +111,6 @@ tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, 
 		}
 	}
 
-	// Is this right?
 	if ( select( max + 1, &readSet, 0, 0, &tv ) <= 0 )
 		return tfalse;
 
@@ -126,4 +125,19 @@ tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, 
 	}
 
 	return ttrue;
+}
+
+
+/*
+====================
+T_CreateHints
+====================
+*/
+struct addrinfo T_CreateHints( const int family, const int socketType, const int flags ) {
+	struct addrinfo hints = T_CreateAddressInfo();
+
+	hints.ai_family = family;
+	hints.ai_socktype = socketType;
+	hints.ai_flags = flags;
+	return hints;
 }
