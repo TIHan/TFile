@@ -27,15 +27,34 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_socket.h"
 
-#include "t_common.h"
 
 /*
 ====================
-T_socket
+T_CreateSocket
 ====================
 */
-SOCKET T_socket( const int family, const int type, const int protocol ) {
-	return socket( family, type, protocol );
+SOCKET T_CreateSocket( const int family, const struct addrinfo *const info ) {
+	if ( !info ) {
+		return INVALID_SOCKET;
+	}
+
+	if ( family == info->ai_family || family == AF_UNSPEC ) {
+		return socket( info->ai_family, info->ai_socktype, info->ai_protocol );
+	}
+	return T_CreateSocket( family, info->ai_next );
+}
+
+
+/*
+====================
+T_CreateAddressInfo
+====================
+*/
+struct addrinfo T_CreateAddressInfo( void ) {
+	struct addrinfo info;
+
+	memset( &info, 0, sizeof( info ) );
+	return info;
 }
 
 
@@ -62,4 +81,49 @@ int T_SocketNonBlocking( const SOCKET socket ) {
 #else
 	return fcntl( socket, F_SETFL, O_NONBLOCK );
 #endif
+}
+
+
+/*
+====================
+T_Select
+====================
+*/
+tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads ) {
+	SOCKET max = 0;
+	int readCount = 0;
+	struct timeval tv;
+	fd_set readSet;
+	int i;
+
+	tv.tv_sec = 0;
+	tv.tv_usec = usec;
+
+	FD_ZERO( &readSet );
+
+	for( i = 0; i < size; ++i ) {
+		if ( sockets[i] == 0 )
+			continue;
+
+		FD_SET( sockets[i], &readSet );
+		if ( sockets[i] > max ) {
+			max = sockets[i];
+		}
+	}
+
+	// Is this right?
+	if ( select( max + 1, &readSet, 0, 0, &tv ) <= 0 )
+		return tfalse;
+
+	for( i = 0; i < size; ++i ) {
+		if ( sockets[i] == INVALID_SOCKET )
+			continue;
+
+		if ( FD_ISSET( sockets[i], &readSet ) ) {
+			reads[readCount] = sockets[i];
+			++readCount;
+		}
+	}
+
+	return ttrue;
 }

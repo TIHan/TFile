@@ -33,6 +33,9 @@
     <ClCompile Include="tinycthread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tfile_client.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tfile_server.h">
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tinycthread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tfile_shared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

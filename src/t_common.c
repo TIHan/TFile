@@ -29,6 +29,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 #include <stdlib.h>
 
+#define MAX_PRINT_SIZE 4096
 
 /*
 ====================
@@ -39,7 +40,7 @@ void T_FatalError( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
-	fprintf( stderr, format, list );
+	vfprintf( stderr, format, list );
 	va_end( list );
 
 	getchar();
@@ -56,7 +57,7 @@ void T_Error( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
-	fprintf( stderr, format, list );
+	vfprintf( stderr, format, list );
 	va_end( list );
 }
 
@@ -70,7 +71,7 @@ void T_Print( const char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
-	printf( format, list );
+	vprintf( format, list );
 	va_end( list );
 }
 

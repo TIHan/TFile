@@ -29,3 +29,4 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 void TFile_ShutdownFileServer( void );
 tboolean TFile_InitFileServer( const char *const port );
+void TFile_StartFileServer( void );

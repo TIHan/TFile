@@ -39,6 +39,9 @@ int main( void ) {
 	TFile_InitWinsock();
 #endif
 	TFile_InitFileServer( "27960" );
-	TFile_ShutdownFileServer();
+	TFile_StartFileServer();
+	//TFile_ShutdownFileServer();
+	T_getchar();
+	TFile_ConnectFileServer( "127.0.0.1", "27960" );
 	T_getchar();
 }

@@ -30,14 +30,80 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "t_socket.h"
 #include "tinycthread.h"
 
+typedef struct fileServerInfo_s {
+	struct sockaddr ai_addr;
+	socklen_t ai_addrlen;
+} fileServerInfo_t;
+
 typedef struct fileServer_s {
-	struct addrinfo info;
-	int socket;
+	SOCKET socket;
+	fileServerInfo_t info;
 } fileServer_t;
 
 static tboolean file_server_initialized = tfalse;
+
+/* Used in threads, TODO: Fix this. */
 static tboolean file_server_running = tfalse;
 static fileServer_t file_server;
+static thrd_t file_server_thread;
+
+
+/*
+====================
+CleanupFailedFileServer
+====================
+*/
+static void CleanupFailedFileServer( const char *const error, const SOCKET socket, struct addrinfo *const info ) {
+	if ( info ) {
+		freeaddrinfo( info );
+	}
+	if ( socket != INVALID_SOCKET ) {
+		// I think it's ok to try to close the socket if there was a problem.
+		closesocket( socket );
+	}
+	T_Error( error );
+}
+
+
+/*
+====================
+CreateHints
+====================
+*/
+static struct addrinfo CreateFileServerHints( const int family, const int socketType, const int flags ) {
+	struct addrinfo hints = T_CreateAddressInfo();
+
+	// We can only create file servers for ipv4 and ipv6.
+	if ( family != AF_INET && family != AF_INET6 ) {
+		T_FatalError( "CreateFileServerHints: Bad socket family type" );
+	}
+
+	hints.ai_family = family;
+	hints.ai_socktype = socketType;
+	hints.ai_flags = flags;
+	return hints;
+}
+
+
+/*
+====================
+GetFileServerStorage
+====================
+*/
+static fileServerInfo_t GetFileServerInfo( const int family, const struct addrinfo *const info ) {
+	fileServerInfo_t fileServerInfo;
+
+	if ( !info ) {
+		T_FatalError( "GetFileServerInfo: Unable to retrieve socket address" );
+	}
+
+	if ( info->ai_family == family ) {
+		fileServerInfo.ai_addr = *info->ai_addr;
+		fileServerInfo.ai_addrlen = info->ai_addrlen;
+		return fileServerInfo;
+	}
+	return GetFileServerInfo( family, info->ai_next );
+}
 
 
 /*
@@ -46,60 +112,44 @@ CreateFileServer
 ====================
 */
 static tboolean CreateFileServer( const int family, const char *const port, fileServer_t *const fileServer ) {
-#define CreateFileServer_error( addrinfo, error ) \
-	if ( ##addrinfo## ) { \
-		freeaddrinfo( ##addrinfo## ); \
-	} \
-	T_Error( error ) \
+	const struct addrinfo hints = CreateFileServerHints( family, SOCK_STREAM, AI_PASSIVE );
 
-	struct addrinfo hints, *result;
-	
-	// We can only create file servers for ipv4 and ipv6.
-	if ( family != AF_INET && family != AF_INET6 ) {
-		T_FatalError( "CreateFileServer: Bad socket family type." );
-	}
+	struct addrinfo defaultInfo = T_CreateAddressInfo();
+	struct addrinfo *result = &defaultInfo;
 
-	memset( &fileServer->info, 0, sizeof( fileServer->info ) );
-	memset( &hints, 0, sizeof( hints ) );
-
-	fileServer->socket = INVALID_SOCKET;
-	hints.ai_family = family;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-
+	// Get address info.
 	if ( getaddrinfo( 0, port, &hints, &result ) == SOCKET_ERROR ) {
-		CreateFileServer_error( result, "CreateFileServer: Unable to get address information.\n" );
+		CleanupFailedFileServer( "CreateFileServer: Unable to get address information.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
-	for ( ; result != 0; result = result->ai_next ) {
-		if ( result->ai_family == family ) {
-			fileServer->socket = T_socket( result->ai_family, result->ai_socktype, result->ai_protocol );
-			break;
-		}
-	}
-
+	// Attempt to create a socket.
+	fileServer->socket = T_CreateSocket( family, result );
 	if ( fileServer->socket == INVALID_SOCKET ) {
-		CreateFileServer_error( result, "CreateFileServer: Unable to create socket.\n" );
+		CleanupFailedFileServer( "CreateFileServer: Unable to create socket.\n", INVALID_SOCKET, result );
 		return tfalse;
 	}
 
-	fileServer->info = *result;
+	// Get file server info.
+	fileServer->info = GetFileServerInfo( family, result );
+	if ( bind( fileServer->socket, &fileServer->info.ai_addr, fileServer->info.ai_addrlen ) == SOCKET_ERROR ) {
+		CleanupFailedFileServer( "CreateFileServer: Unable to bind socket.\n", fileServer->socket, result );
+		return tfalse;
+	}
 
+	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( fileServer->socket ) == SOCKET_ERROR ) {
-		CreateFileServer_error( result, "CreateFileServer: Unable to create socket.\n" );
+		CleanupFailedFileServer( "CreateFileServer: Unable to set sock to non-blocking.\n", fileServer->socket, result );
 		return tfalse;
 	}
+
+	// Set socket to reuse address.
 	if ( T_SocketReuseAddress( fileServer->socket ) == SOCKET_ERROR ) {
-		CreateFileServer_error( result, "CreateFileServer: Unable to set socket to reuse address.\n" );
+		CleanupFailedFileServer( "CreateFileServer: Unable to set socket to reuse address.\n", fileServer->socket, result );
 		return tfalse;
 	}
 
-	if ( bind( fileServer->socket, fileServer->info.ai_addr, fileServer->info.ai_addrlen ) == SOCKET_ERROR ) {
-		CreateFileServer_error( result, "CreateFileServer: Unable to bind socket.\n" );
-		return tfalse;
-	}
-
+	// Free up what was allocated from getaddrinfo.
 	freeaddrinfo( result );
 	return ttrue;
 }
@@ -128,14 +178,88 @@ TFile_InitFileServer
 */
 tboolean TFile_InitFileServer( const char *const port ) {
 	if ( file_server_initialized ) {
-		T_FatalError( "TFile_InitFileServer: File server is already initialized." );
+		T_FatalError( "TFile_InitFileServer: File server is already initialized" );
 	}
-	if ( !CreateFileServer( AF_INET, "29760", &file_server ) ) {
-		closesocket( file_server.socket ); // I think it's ok to try to close the socket if there was a problem.
+	if ( !CreateFileServer( AF_INET, port, &file_server ) ) {
 		T_Error( "TFile_InitFileServer: Unable to initialize file server.\n" );
 		return tfalse;
 	}
 	file_server_initialized = ttrue;
 	T_Print( "File server initialized.\n" );
 	return ttrue;
+}
+
+
+/*
+====================
+FileServerThread
+====================
+*/
+static int FileServerThread( void *arg ) {
+#define MAX_CONNECTIONS 256
+#define MAX_SOCKETS MAX_CONNECTIONS + 1
+#define MAX_BUFFER_SIZE 1024
+
+	const SOCKET server = file_server.socket; // fix me
+
+	SOCKET connections[MAX_CONNECTIONS] = { 0 };
+	int connectionCount = 0, addrLen = 0;
+	struct sockaddr_storage addr;
+	byte buffer[MAX_BUFFER_SIZE];
+
+	if ( listen( server, 8 ) == SOCKET_ERROR ) {
+		T_Error( "FileServerThread: Failed to listen on file server socket." );
+		return 0;
+	}
+
+	addrLen = sizeof( addr );
+	file_server_running = ttrue; // fix me
+	while( 1 ) {
+		SOCKET sockets[MAX_SOCKETS] = { 0 };
+		SOCKET reads[MAX_SOCKETS] = { 0 };
+		int i;
+
+		sockets[0] = server;
+
+		if ( !T_Select( sockets, MAX_SOCKETS, 1000000, reads ) ) {
+			continue;
+		}
+
+		for( i = 0; i < MAX_SOCKETS; ++i ) {
+			if ( reads[i] == server ) {
+				if ( connections[connectionCount] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) != SOCKET_ERROR ) {
+					++connectionCount;
+					// TODO
+					T_Print( "Client connected.\n" );
+				}
+			} else {
+				int bytes = recv( reads[i], ( char * )buffer, MAX_BUFFER_SIZE, 0 );
+				if ( bytes > 0 ) {
+					// TODO
+					T_Print( "Server received %i bytes.\n", bytes );
+				}
+			}
+		}
+	}
+	return 1;
+}
+
+
+/*
+====================
+TFile_StartFileServer
+====================
+*/
+void TFile_StartFileServer( void ) {
+	if ( !file_server_initialized ) {
+		T_FatalError( "TFile_StartFileServer: File server is not initialized" );
+	}
+
+	if ( file_server_running ) {
+		T_FatalError( "TFile_StartFileServer: File server is already running" );
+	}
+
+	if ( thrd_create( &file_server_thread, FileServerThread, NULL ) != thrd_success ) {
+		T_FatalError( "TFile_StartFileServer: Unable to create thread" );
+	}
 }

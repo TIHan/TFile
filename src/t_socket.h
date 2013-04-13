@@ -25,6 +25,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "t_common.h"
+
 #if _WIN32
 #	include <winsock2.h>
 #	include <ws2tcpip.h>
@@ -47,6 +49,8 @@ typedef int SOCKET;
 #	define closesocket			close
 #endif
 
-SOCKET T_socket( const int family, const int type, const int protocol );
+SOCKET T_CreateSocket( const int family, const struct addrinfo *const info );
+struct addrinfo T_CreateAddressInfo( void );
 int T_SocketReuseAddress( const SOCKET socket );
 int T_SocketNonBlocking( const SOCKET socket );
+tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads );
