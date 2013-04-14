@@ -27,11 +27,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_client.h"
 
+#include "t_internal_types.h"
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
 static SOCKET client_socket = INVALID_SOCKET;
-static tboolean client_connected = tfalse;
+static _bool client_connected = _false;
 
 
 /*
@@ -39,40 +40,43 @@ static tboolean client_connected = tfalse;
 CreateClient
 ====================
 */
-static tboolean CreateClient( const char *const ip, const char *const port, SOCKET *const socket ) {
+static _bool CreateClient( const char *const ip, const int port, SOCKET *const socket ) {
 	const struct addrinfo hints = T_CreateHints( AF_UNSPEC, SOCK_STREAM, 0 );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
+	char portStr[PORT_CHAR_SIZE];
+
+	T_itoa( port, portStr, PORT_CHAR_SIZE );
 
 	// Get address info.
-	if ( getaddrinfo( ip, port, &hints, &result ) == SOCKET_ERROR ) {
+	if ( getaddrinfo( ip, portStr, &hints, &result ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to get address information.\n", INVALID_SOCKET, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Attempt to create a socket.
 	*socket = T_CreateSocket( AF_UNSPEC, result );
 	if ( *socket == INVALID_SOCKET ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to create socket.\n", INVALID_SOCKET, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Connect to remote host.
 	if ( connect( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to connect to remote host.\n", *socket, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateClient: Unable to set sock to non-blocking.\n", *socket, result );
-		return tfalse;
+		TFile_CleanupFailedSocket( "CreateClient: Unable to set socket to non-blocking.\n", *socket, result );
+		return _false;
 	}
 
 	// Free up what was allocated from getaddrinfo.
 	freeaddrinfo( result );
-	return ttrue;
+	return _true;
 }
 
 
@@ -81,12 +85,13 @@ static tboolean CreateClient( const char *const ip, const char *const port, SOCK
 TFile_Connect
 ====================
 */
-tboolean TFile_Connect( const char *ip, const char *port ) {
+int TFile_Connect( const char *ip, const int port ) {
 	if ( CreateClient( ip, port, &client_socket ) ) {
+		client_connected = _true;
 		T_Print( "Successfully connected.\n" );
-		return ttrue;
+		return _true;
 	}
-	return tfalse;
+	return _false;
 }
 
 
@@ -95,6 +100,6 @@ tboolean TFile_Connect( const char *ip, const char *port ) {
 TFile_Disconnect
 ====================
 */
-tboolean TFile_Disconnect( void ) {
-	return ttrue;
+int TFile_Disconnect( void ) {
+	return _true;
 }

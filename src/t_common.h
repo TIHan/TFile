@@ -28,18 +28,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _T_COMMON_H_
 #define _T_COMMON_H_
 
-typedef unsigned char byte;
-
-typedef enum {
-	tfalse,
-	ttrue
-} tboolean;
-
 void T_FatalError( const char *const format, ... );
 void T_Error( const char *const format, ... );
 void T_Print( const char *const format, ... );
 
-char *T_itoa( int value, char *buffer );
+void T_itoa( const int value, char *const destination, const int size );
 int T_getchar( void );
 
-#endif // _T_COMMON_H_'
+#endif // _T_COMMON_H_

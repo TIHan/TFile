@@ -25,8 +25,14 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "t_common.h"
+#ifndef _T_INTERNAL_TYPES_H_
+#define _T_INTERNAL_TYPES_H_
 
-void TFile_ShutdownServer( void );
-int TFile_InitServer( const int port );
-void TFile_StartServer( void );
+typedef unsigned char _byte;
+
+typedef enum {
+	_false,
+	_true
+} _bool;
+
+#endif // _T_INTERNAL_TYPES_H_

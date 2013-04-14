@@ -27,4 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_socket.h"
 
+#define PORT_CHAR_SIZE 32
+
 void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info );

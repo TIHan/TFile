@@ -62,5 +62,8 @@
     <ClInclude Include="tfile_shared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="t_internal_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

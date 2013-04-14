@@ -26,5 +26,4 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "t_common.h"
-
-tboolean TFile_Connect( const char *ip, const char *port );
+int TFile_Connect( const char *ip, const int port );

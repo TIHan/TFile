@@ -29,7 +29,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 #include <stdlib.h>
 
-#define MAX_PRINT_SIZE 4096
+#define MAX_CHAR_SIZE 4096
+
+
 
 /*
 ====================
@@ -79,30 +81,12 @@ void T_Print( const char *const format, ... ) {
 /*
 ====================
 T_itoa
+
+// TODO: Fix me
 ====================
 */
-char *T_itoa( int value, char *buffer ) {
-	char const digit[] = "0123456789";
-	int shifter;
-
-	// Value is negative.
-	if ( value < 0 ){
-		*buffer++ = '-';
-		value = -1;
-	}
-	
-	shifter = value;
-	do {
-		++buffer;
-		shifter = shifter / 10;
-	} while( shifter );
-
-	*buffer = '\0';
-	do {
-		*--buffer = digit[value % 10];
-		value = value / 10;
-	} while( value );
-	return buffer;
+void T_itoa( const int value, char *const destination, const int size ) {
+	itoa( value, destination, 10 );
 }
 
 

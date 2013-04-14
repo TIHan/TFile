@@ -89,11 +89,12 @@ int T_SocketNonBlocking( const SOCKET socket ) {
 T_Select
 ====================
 */
-tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads ) {
+int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads ) {
 	SOCKET max = 0;
 	int readCount = 0;
 	struct timeval tv;
 	fd_set readSet;
+	int result;
 	int i;
 
 	tv.tv_sec = 0;
@@ -111,8 +112,8 @@ tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, 
 		}
 	}
 
-	if ( select( max + 1, &readSet, 0, 0, &tv ) <= 0 )
-		return tfalse;
+	if ( result = select( max + 1, &readSet, 0, 0, &tv ) <= 0 )
+		return result;
 
 	for( i = 0; i < size; ++i ) {
 		if ( sockets[i] == 0 )
@@ -124,7 +125,7 @@ tboolean T_Select( const SOCKET *const sockets, const int size, const int usec, 
 		}
 	}
 
-	return ttrue;
+	return result;
 }
 
 

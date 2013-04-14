@@ -27,14 +27,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_server.h"
 
+#include "t_internal_types.h"
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
 
-static tboolean server_initialized = tfalse;
+static _bool server_initialized = _false;
 
 /* Used in threads, TODO: Fix this. */
-static tboolean server_running = tfalse;
+static _bool server_running = _false;
 static SOCKET server_socket = INVALID_SOCKET;
 static SOCKET server_socket6 = INVALID_SOCKET;
 static thrd_t server_thread;
@@ -60,46 +61,49 @@ static struct addrinfo CreateServerHints( const int family, const int socketType
 CreateServer
 ====================
 */
-static tboolean CreateServer( const int family, const char *const port, SOCKET *const socket ) {
+static _bool CreateServer( const int family, const int port, SOCKET *const socket ) {
 	const struct addrinfo hints = CreateServerHints( family, SOCK_STREAM, AI_PASSIVE );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
+	char portStr[PORT_CHAR_SIZE];
+
+	T_itoa( port, portStr, PORT_CHAR_SIZE );
 
 	// Get address info.
-	if ( getaddrinfo( 0, port, &hints, &result ) == SOCKET_ERROR ) {
+	if ( getaddrinfo( 0, portStr, &hints, &result ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to get address information.\n", INVALID_SOCKET, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Attempt to create a socket.
 	*socket = T_CreateSocket( family, result );
 	if ( *socket == INVALID_SOCKET ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to create socket.\n", INVALID_SOCKET, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Get file server info.
 	if ( bind( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to bind socket.\n", *socket, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateServer: Unable to set sock to non-blocking.\n", *socket, result );
-		return tfalse;
+		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to non-blocking.\n", *socket, result );
+		return _false;
 	}
 
 	// Set socket to reuse address.
 	if ( T_SocketReuseAddress( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to reuse address.\n", *socket, result );
-		return tfalse;
+		return _false;
 	}
 
 	// Free up what was allocated from getaddrinfo.
 	freeaddrinfo( result );
-	return ttrue;
+	return _true;
 }
 
 
@@ -109,8 +113,8 @@ TFile_ShutdownServer
 ====================
 */
 void TFile_ShutdownServer( void ) {
-	server_initialized = tfalse;
-	server_running = tfalse;
+	server_initialized = _false;
+	server_running = _false;
 	if ( closesocket( server_socket ) == SOCKET_ERROR ) {
 		T_Error( "TFile_ShutdownServer: Unable to close file server socket.\n" );
 		return;
@@ -124,17 +128,17 @@ void TFile_ShutdownServer( void ) {
 TFile_InitServer
 ====================
 */
-tboolean TFile_InitServer( const char *const port ) {
+int TFile_InitServer( const int port ) {
 	if ( server_initialized ) {
 		T_FatalError( "TFile_InitServer: Server is already initialized" );
 	}
 	if ( !CreateServer( AF_INET, port, &server_socket ) || !CreateServer( AF_INET6, port, &server_socket6 ) ) {
 		T_Error( "TFile_InitServer: Unable to initialize server.\n" );
-		return tfalse;
+		return _false;
 	}
-	server_initialized = ttrue;
+	server_initialized = _true;
 	T_Print( "File server initialized.\n" );
-	return ttrue;
+	return _true;
 }
 
 
@@ -154,7 +158,7 @@ static int ServerThread( void *arg ) {
 	SOCKET connections[MAX_CONNECTIONS] = { 0 };
 	int connectionCount = 0, addrLen = 0;
 	struct sockaddr_storage addr;
-	byte buffer[MAX_BUFFER_SIZE];
+	_byte buffer[MAX_BUFFER_SIZE];
 
 	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
 		T_Error( "ServerThread: Failed to listen on file server socket." );
@@ -162,7 +166,7 @@ static int ServerThread( void *arg ) {
 	}
 
 	addrLen = sizeof( addr );
-	server_running = ttrue; // fix me
+	server_running = _true; // fix me
 	while( 1 ) {
 		SOCKET sockets[MAX_SOCKETS] = { 0 };
 		SOCKET reads[MAX_SOCKETS] = { 0 };
@@ -171,7 +175,7 @@ static int ServerThread( void *arg ) {
 		sockets[0] = server;
 		sockets[1] = server6;
 
-		if ( !T_Select( sockets, MAX_SOCKETS, 1000000, reads ) ) {
+		if ( T_Select( sockets, MAX_SOCKETS, 10000, reads ) == SOCKET_ERROR ) {
 			continue;
 		}
 
@@ -197,7 +201,7 @@ static int ServerThread( void *arg ) {
 			}
 		}
 	}
-	return 1;
+	return _true;
 }
 
 
