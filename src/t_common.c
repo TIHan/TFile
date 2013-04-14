@@ -28,6 +28,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX_CHAR_SIZE 4096
 
@@ -80,13 +81,63 @@ void T_Print( const char *const format, ... ) {
 
 /*
 ====================
-T_itoa
+_T_itoa_reverse
+====================
+*/
+static void _T_itoa_reverse( const int position, char *const destination, const int length ) {
+	const char first = destination[position];
+	const char last = destination[length - position];
 
-// TODO: Fix me
+	if ( first == '-' ) {
+		_T_itoa_reverse( position + 1, destination, length + 1 );
+		return;
+	}
+
+	destination[position] = last;
+	destination[length - position] = first;
+	if ( position == length / 2 ) {
+		return;
+	}
+	_T_itoa_reverse( position + 1, destination, length );
+}
+
+
+/*
+====================
+_T_itoa_convert
+====================
+*/
+static void _T_itoa_convert( const int value, const int length, char *const destination, const int size ) {
+	if ( length == size - 1 || value == 0 ) {
+		_T_itoa_reverse( 0, destination, length - 1 );
+		destination[length] = '\0';
+		return;
+	}
+	destination[length] = value % 10 + '0';
+	_T_itoa_convert( value / 10, length + 1, destination, size );
+}
+
+
+/*
+====================
+T_itoa
 ====================
 */
 void T_itoa( const int value, char *const destination, const int size ) {
-	itoa( value, destination, 10 );
+	if ( size <= 1 ) {
+		return;
+	}
+
+	if ( value < 0 ) {
+		destination[0] = '-';
+		_T_itoa_convert( value * -1, 1, destination, size );
+		return;
+	} else if ( value == 0 ) {
+		destination[0] = '0';
+		destination[1] = '\0';
+		return;
+	}
+	_T_itoa_convert( value, 0, destination, size );
 }
 
 
