@@ -71,6 +71,7 @@
     <ClCompile Include="tfile_shared.c" />
     <ClCompile Include="tinycthread.c" />
     <ClCompile Include="t_common.c" />
+    <ClCompile Include="t_common_win.c" />
     <ClCompile Include="t_socket.c" />
   </ItemGroup>
   <ItemGroup>

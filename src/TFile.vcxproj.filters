@@ -39,6 +39,9 @@
     <ClCompile Include="tfile_shared.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="t_common_win.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tfile_server.h">

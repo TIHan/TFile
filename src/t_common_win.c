@@ -25,33 +25,30 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "tfile.h"
+#include "t_internal_types.h"
 
-#include "t_socket.h"
+#include <Windows.h>
 
-#ifdef _WIN32
+
 /*
 ====================
-TFile_InitWinsock
+T_Milliseconds
 ====================
 */
-void TFile_InitWinsock( void ) {
-	WSADATA wsaData;
-	// Initialize Winsock
-	int result = WSAStartup( MAKEWORD( 2, 2 ), &wsaData );
-	if ( result != 0 ) {
-		T_FatalError( "Failed to initialize winsock." );
+_time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
+#define CAST_MILLISECONDS( time, frequency ) \
+	( time.QuadPart * ( 1000.0 / frequency.QuadPart ) ) \
+
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER time;
+
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&time);
+
+	if ( !( *initialized ) ) {
+		*baseTime = ( _time_t )CAST_MILLISECONDS( time, frequency );
+		*initialized = _true;
 	}
-	T_Print( "Winsock initialized.\n" );
-}
 
-
-/*
-====================
-TFile_ShutdownWinsock
-====================
-*/
-void TFile_ShutdownWinsock( void ) {
-	WSACleanup();
+	return ( _time_t )CAST_MILLISECONDS( time, frequency ) - *baseTime;
 }
-#endif

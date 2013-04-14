@@ -103,7 +103,7 @@ int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKE
 	FD_ZERO( &readSet );
 
 	for( i = 0; i < size; ++i ) {
-		if ( sockets[i] == 0 )
+		if ( sockets[i] == ZERO_SOCKET )
 			continue;
 
 		FD_SET( sockets[i], &readSet );
@@ -117,7 +117,7 @@ int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKE
 	}
 
 	for( i = 0; i < size; ++i ) {
-		if ( sockets[i] == 0 )
+		if ( sockets[i] == ZERO_SOCKET )
 			continue;
 
 		if ( FD_ISSET( sockets[i], &readSet ) ) {

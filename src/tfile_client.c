@@ -27,7 +27,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_client.h"
 
-#include "t_internal_types.h"
+#include "t_common.h"
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
@@ -38,6 +38,8 @@ static _bool client_connected = _false;
 /*
 ====================
 CreateClient
+
+TODO: Break out normal socket errors.
 ====================
 */
 static _bool CreateClient( const char *const ip, const int port, SOCKET *const socket ) {
@@ -45,9 +47,9 @@ static _bool CreateClient( const char *const ip, const int port, SOCKET *const s
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
-	char portStr[PORT_CHAR_SIZE];
+	char portStr[MAX_PORT_SIZE];
 
-	T_itoa( port, portStr, PORT_CHAR_SIZE );
+	T_itoa( port, portStr, MAX_PORT_SIZE );
 
 	// Get address info.
 	if ( getaddrinfo( ip, portStr, &hints, &result ) == SOCKET_ERROR ) {
@@ -91,7 +93,6 @@ int TFile_DownloadFile( const char *fileName ) {
 		T_FatalError( "TFile_DownloadFile: Not connected" );
 	}
 
-
 	if ( send( client_socket, ( char *)&cmd, 1, 0 ) == SOCKET_ERROR ) {
 		T_Error( "TFile_DownloadFile: Failed to download file.\n" );
 		return _false;
@@ -107,6 +108,7 @@ TFile_Connect
 */
 int TFile_Connect( const char *ip, const int port ) {
 	if ( !CreateClient( ip, port, &client_socket ) ) {
+		T_Error( "TFile_Connect: Unable to connect to %s.\n", ip );
 		return _false;
 	}
 	client_connected = _true;

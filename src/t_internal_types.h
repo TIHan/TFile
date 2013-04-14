@@ -28,7 +28,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _T_INTERNAL_TYPES_H_
 #define _T_INTERNAL_TYPES_H_
 
+#include <stdint.h>
+
 typedef unsigned char _byte;
+typedef unsigned long long _time_t;
 
 typedef enum {
 	_false,

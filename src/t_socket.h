@@ -44,10 +44,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #	include <unistd.h>
 
 typedef int SOCKET;
-#	define INVALID_SOCKET		-1
-#	define SOCKET_ERROR			-1
-#	define closesocket			close
+#	define INVALID_SOCKET -1
+#	define SOCKET_ERROR -1
+#	define closesocket close
 #endif
+
+#define ZERO_SOCKET 0
 
 SOCKET T_CreateSocket( const int family, const struct addrinfo *const info );
 struct addrinfo T_CreateAddressInfo( void );

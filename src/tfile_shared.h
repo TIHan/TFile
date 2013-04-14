@@ -27,7 +27,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_socket.h"
 
-#define PORT_CHAR_SIZE 32
+#include "t_internal_types.h"
+
+#define MAX_PORT_SIZE 32
+#define MAX_PACKET_SIZE 1024
 
 typedef enum {
 	CMD_DOWNLOAD_FILE

@@ -27,7 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_server.h"
 
-#include "t_internal_types.h"
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
@@ -59,6 +58,8 @@ static struct addrinfo CreateServerHints( const int family, const int socketType
 /*
 ====================
 CreateServer
+
+TODO: Break out normal socket errors.
 ====================
 */
 static _bool CreateServer( const int family, const int port, SOCKET *const socket ) {
@@ -66,9 +67,9 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
-	char portStr[PORT_CHAR_SIZE];
+	char portStr[MAX_PORT_SIZE];
 
-	T_itoa( port, portStr, PORT_CHAR_SIZE );
+	T_itoa( port, portStr, MAX_PORT_SIZE );
 
 	// Get address info.
 	if ( getaddrinfo( 0, portStr, &hints, &result ) == SOCKET_ERROR ) {
@@ -133,6 +134,7 @@ int TFile_InitServer( const int port ) {
 		T_FatalError( "TFile_InitServer: Server is already initialized" );
 	}
 	if ( !CreateServer( AF_INET, port, &server_socket ) || !CreateServer( AF_INET6, port, &server_socket6 ) ) {
+		TFile_CleanupFailedSocket( NULL, server_socket, NULL ); // Clean up IPv4 socket in case only the IPv6 socket failed.
 		T_Error( "TFile_InitServer: Unable to initialize server.\n" );
 		return _false;
 	}
@@ -145,20 +147,27 @@ int TFile_InitServer( const int port ) {
 /*
 ====================
 ServerThread
+
+TODO: This could use some cleaning up.
+TODO: Break out normal socket errors.
 ====================
 */
 static int ServerThread( void *arg ) {
 #define MAX_CONNECTIONS 256
 #define MAX_SOCKETS MAX_CONNECTIONS + 2
-#define MAX_BUFFER_SIZE 1024
+#define SELECT_TIMEOUT 100000
+
 
 	const SOCKET server = server_socket; // fix me
 	const SOCKET server6 = server_socket6; // fix me
 
-	SOCKET connections[MAX_CONNECTIONS] = { 0 };
+	SOCKET connections[MAX_CONNECTIONS] = { ZERO_SOCKET };
 	int connectionCount = 0, addrLen = 0;
+	_time_t baseTime = 0;
+	_bool timeInitialized = _false;
 	struct sockaddr_storage addr;
-	_byte buffer[MAX_BUFFER_SIZE];
+	_byte buffer[MAX_PACKET_SIZE];
+	_time_t serverTime;
 
 	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
 		T_Error( "ServerThread: Failed to listen on file server socket." );
@@ -168,9 +177,11 @@ static int ServerThread( void *arg ) {
 	addrLen = sizeof( addr );
 	server_running = _true; // fix me
 	while( 1 ) {
-		SOCKET sockets[MAX_SOCKETS] = { 0 };
-		SOCKET reads[MAX_SOCKETS] = { 0 };
+		SOCKET sockets[MAX_SOCKETS] = { ZERO_SOCKET };
+		SOCKET reads[MAX_SOCKETS] = { ZERO_SOCKET };
 		int i;
+
+		serverTime = T_Milliseconds( &baseTime, ( int * )&timeInitialized );
 
 		sockets[0] = server;
 		sockets[1] = server6;
@@ -179,14 +190,18 @@ static int ServerThread( void *arg ) {
 			sockets[i] = connections[i - 2];
 		}
 
-		if ( T_Select( sockets, MAX_SOCKETS, 10000, reads ) == SOCKET_ERROR ) {
+		// Synchronous event demultiplexer.
+		// It's ok that we are using select as its portable.
+		// It may not be the fastest, but it's definitely quick enough for what we are trying to accomplish.
+		if ( T_Select( sockets, MAX_SOCKETS, SELECT_TIMEOUT, reads ) == SOCKET_ERROR ) {
 			continue;
 		}
 
 		for( i = 0; i < MAX_SOCKETS; ++i ) {
-			if ( reads[i] == 0 )
+			if ( reads[i] == ZERO_SOCKET )
 				continue;
 
+			// Accept connections on IPv4 and IPv6.
 			if ( reads[i] == server ) {
 				if ( ( connections[connectionCount] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
 					++connectionCount;
@@ -200,7 +215,8 @@ static int ServerThread( void *arg ) {
 					T_Print( "Client connected.\n" );
 				}
 			} else {
-				int bytes = recv( reads[i], ( char * )buffer, MAX_BUFFER_SIZE, 0 );
+				// Handle messages from the accepted connections.
+				int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
 				if ( bytes > 0 ) {
 					// TODO
 					T_Print( "Server received %i bytes.\n", bytes );

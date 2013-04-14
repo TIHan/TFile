@@ -41,5 +41,7 @@ void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, st
 		// I think it's ok to try to close the socket if there was a problem.
 		closesocket( socket );
 	}
-	T_Error( error );
+	if ( error ) {
+		T_Error( error );
+	}
 }

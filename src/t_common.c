@@ -33,7 +33,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_CHAR_SIZE 4096
 
 
-
 /*
 ====================
 T_FatalError
