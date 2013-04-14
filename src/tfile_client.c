@@ -67,12 +67,14 @@ static _bool CreateClient( const char *const ip, const int port, SOCKET *const s
 	// Connect to remote host.
 	if ( connect( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to connect to remote host.\n", *socket, result );
+		*socket = INVALID_SOCKET;
 		return _false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to set socket to non-blocking.\n", *socket, result );
+		*socket = INVALID_SOCKET;
 		return _false;
 	}
 
@@ -84,10 +86,10 @@ static _bool CreateClient( const char *const ip, const int port, SOCKET *const s
 
 /*
 ====================
-TFile_DownloadFile
+TFile_ClientDownloadFile
 ====================
 */
-int TFile_DownloadFile( const char *fileName ) {
+int TFile_ClientDownloadFile( const char *fileName ) {
 	_byte cmd = CMD_DOWNLOAD_FILE;
 	if ( !client_connected ) {
 		T_FatalError( "TFile_DownloadFile: Not connected" );
@@ -103,10 +105,10 @@ int TFile_DownloadFile( const char *fileName ) {
 
 /*
 ====================
-TFile_Connect
+TFile_ClientConnect
 ====================
 */
-int TFile_Connect( const char *ip, const int port ) {
+int TFile_ClientConnect( const char *ip, const int port ) {
 	if ( !CreateClient( ip, port, &client_socket ) ) {
 		T_Error( "TFile_Connect: Unable to connect to %s.\n", ip );
 		return _false;
@@ -119,9 +121,11 @@ int TFile_Connect( const char *ip, const int port ) {
 
 /*
 ====================
-TFile_Disconnect
+TFile_ShutdownClient
 ====================
 */
-int TFile_Disconnect( void ) {
-	return _true;
+void TFile_ShutdownClient( void ) {
+	client_connected = _false;
+	TFile_TryCloseSocket( client_socket );
+	T_Print( "Disconnect from file server.\n" );
 }

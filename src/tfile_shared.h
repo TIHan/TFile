@@ -42,3 +42,4 @@ typedef enum {
 } event_t;
 
 void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info );
+_bool TFile_TryCloseSocket( const SOCKET socket );

@@ -38,11 +38,33 @@ int main( void ) {
 #ifdef _WIN32
 	TFile_InitWinsock();
 #endif
-	TFile_InitServer( 27960 );
+
+	if ( !TFile_InitServer( 27960 ) ) {
+		T_getchar();
+		return 0;
+	}
+
 	TFile_StartServer();
-	TFile_Connect( "127.0.0.1", 27960 );
+
+	if ( !TFile_ClientConnect( "127.0.0.1", 27960 ) ) {
+		T_getchar();
+		return 0;
+	}
+
 	T_getchar();
-	TFile_DownloadFile(" yo");
+
+	TFile_ClientDownloadFile("mp_pakmaps5.pk3");
+
 	T_getchar();
+
+	TFile_ShutdownClient();
+
+	T_getchar();
+
+	TFile_ShutdownServer();
+
+#ifdef _WIN32
 	TFile_ShutdownWinsock();
+#endif
+	return 1;
 }

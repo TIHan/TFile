@@ -51,6 +51,7 @@ typedef int SOCKET;
 
 #define ZERO_SOCKET 0
 
+const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *const info );
 SOCKET T_CreateSocket( const int family, const struct addrinfo *const info );
 struct addrinfo T_CreateAddressInfo( void );
 int T_SocketReuseAddress( const SOCKET socket );

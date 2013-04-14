@@ -30,8 +30,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_CHAR_SIZE 4096
-
 
 /*
 ====================

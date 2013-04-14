@@ -67,6 +67,7 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
+	const struct addrinfo *found;
 	char portStr[MAX_PORT_SIZE];
 
 	T_itoa( port, portStr, MAX_PORT_SIZE );
@@ -84,21 +85,25 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 		return _false;
 	}
 
-	// Get file server info.
-	if ( bind( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
+	// Bind socket.
+	found = T_FindAddrInfo( family, result );
+	if ( bind( *socket, found->ai_addr, found->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to bind socket.\n", *socket, result );
+		*socket = INVALID_SOCKET;
 		return _false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to non-blocking.\n", *socket, result );
+		*socket = INVALID_SOCKET;
 		return _false;
 	}
 
 	// Set socket to reuse address.
 	if ( T_SocketReuseAddress( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to reuse address.\n", *socket, result );
+		*socket = INVALID_SOCKET;
 		return _false;
 	}
 
@@ -116,10 +121,8 @@ TFile_ShutdownServer
 void TFile_ShutdownServer( void ) {
 	server_initialized = _false;
 	server_running = _false;
-	if ( closesocket( server_socket ) == SOCKET_ERROR ) {
-		T_Error( "TFile_ShutdownServer: Unable to close file server socket.\n" );
-		return;
-	}
+	TFile_TryCloseSocket( server_socket );
+	TFile_TryCloseSocket( server_socket6 );
 	T_Print( "File server shutdown.\n" );
 }
 
@@ -146,6 +149,19 @@ int TFile_InitServer( const int port ) {
 
 /*
 ====================
+RemoveConnection
+====================
+*/
+static void RemoveConnection( SOCKET *connections, const int size, const int index ) {
+	const int last = size - 1;
+
+	connections[index] = connections[last];
+	connections[last] = ZERO_SOCKET;
+}
+
+
+/*
+====================
 ServerThread
 
 TODO: This could use some cleaning up.
@@ -153,25 +169,27 @@ TODO: Break out normal socket errors.
 ====================
 */
 static int ServerThread( void *arg ) {
-#define MAX_CONNECTIONS 256
-#define MAX_SOCKETS MAX_CONNECTIONS + 2
+#define MAX_CONNECTIONS 254
+#define MAX_SOCKETS MAX_CONNECTIONS + 2 // 2 represents IPv4 and IPv6 sockets.
 #define SELECT_TIMEOUT 100000
-
 
 	const SOCKET server = server_socket; // fix me
 	const SOCKET server6 = server_socket6; // fix me
 
 	SOCKET connections[MAX_CONNECTIONS] = { ZERO_SOCKET };
 	int connectionCount = 0, addrLen = 0;
-	_time_t baseTime = 0;
 	_bool timeInitialized = _false;
+	_bool checkConnections = _false;
+	_time_t checkConnectionsTime = 0;
 	struct sockaddr_storage addr;
 	_byte buffer[MAX_PACKET_SIZE];
+	_time_t baseTime;
 	_time_t serverTime;
+
 
 	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
 		T_Error( "ServerThread: Failed to listen on file server socket." );
-		return 0;
+		return _false;
 	}
 
 	addrLen = sizeof( addr );
@@ -182,6 +200,12 @@ static int ServerThread( void *arg ) {
 		int i;
 
 		serverTime = T_Milliseconds( &baseTime, ( int * )&timeInitialized );
+		checkConnectionsTime = checkConnectionsTime == 0 ? serverTime + 1000 : checkConnectionsTime;
+
+		if ( serverTime >= checkConnectionsTime ) {
+			checkConnections = _true;
+			checkConnectionsTime = 0;
+		}
 
 		sockets[0] = server;
 		sockets[1] = server6;
@@ -222,6 +246,21 @@ static int ServerThread( void *arg ) {
 					T_Print( "Server received %i bytes.\n", bytes );
 				}
 			}
+		}
+
+		// Check to see if any of our accepted connections were dropped.
+		if ( checkConnections ) {
+			for( i = 0; i < connectionCount; ++i ) {
+				int bytes = recv( connections[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
+				if ( bytes > 0 ) { // We actually have some data!
+					// TODO
+					T_Print( "Server received %i bytes.\n", bytes );
+				} else if ( bytes == 0 ) { // Let's see how well this works.
+					RemoveConnection( connections, MAX_CONNECTIONS, i );
+					T_Print( "Client disconnected.\n" );
+				}
+			}
+			checkConnections = _false;
 		}
 	}
 	return _true;

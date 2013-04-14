@@ -30,18 +30,34 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
 ====================
+T_FindAddrInfo
+====================
+*/
+const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *const info ) {
+	if ( !info ) {
+		return NULL;
+	}
+
+	if ( family == info->ai_family || family == AF_UNSPEC ) {
+		return info;
+	}
+	return T_FindAddrInfo( family, info->ai_next );
+}
+
+
+/*
+====================
 T_CreateSocket
 ====================
 */
 SOCKET T_CreateSocket( const int family, const struct addrinfo *const info ) {
-	if ( !info ) {
+	const struct addrinfo *found = T_FindAddrInfo( family, info );
+
+	if ( !found ) {
 		return INVALID_SOCKET;
 	}
 
-	if ( family == info->ai_family || family == AF_UNSPEC ) {
-		return socket( info->ai_family, info->ai_socktype, info->ai_protocol );
-	}
-	return T_CreateSocket( family, info->ai_next );
+	return socket( found->ai_family, found->ai_socktype, found->ai_protocol );
 }
 
 

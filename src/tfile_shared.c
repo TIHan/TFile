@@ -37,11 +37,25 @@ void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, st
 	if ( info ) {
 		freeaddrinfo( info );
 	}
-	if ( socket != INVALID_SOCKET ) {
-		// I think it's ok to try to close the socket if there was a problem.
-		closesocket( socket );
-	}
 	if ( error ) {
 		T_Error( error );
 	}
+	TFile_TryCloseSocket( socket );
+}
+
+
+/*
+====================
+TFile_TryCloseSocket
+====================
+*/
+_bool TFile_TryCloseSocket( const SOCKET socket ) {
+	if ( socket == INVALID_SOCKET )
+		return _false;
+
+	if ( closesocket( socket ) == SOCKET_ERROR ) {
+		T_Error( "TFile_TryCloseSocket: Error trying to close valid socket.\n" );
+		return _false;
+	}
+	return _true;
 }
