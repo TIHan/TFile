@@ -82,16 +82,36 @@ static _bool CreateClient( const char *const ip, const int port, SOCKET *const s
 
 /*
 ====================
+TFile_DownloadFile
+====================
+*/
+int TFile_DownloadFile( const char *fileName ) {
+	_byte cmd = CMD_DOWNLOAD_FILE;
+	if ( !client_connected ) {
+		T_FatalError( "TFile_DownloadFile: Not connected" );
+	}
+
+
+	if ( send( client_socket, ( char *)&cmd, 1, 0 ) == SOCKET_ERROR ) {
+		T_Error( "TFile_DownloadFile: Failed to download file.\n" );
+		return _false;
+	}
+	return _true;
+}
+
+
+/*
+====================
 TFile_Connect
 ====================
 */
 int TFile_Connect( const char *ip, const int port ) {
-	if ( CreateClient( ip, port, &client_socket ) ) {
-		client_connected = _true;
-		T_Print( "Successfully connected.\n" );
-		return _true;
+	if ( !CreateClient( ip, port, &client_socket ) ) {
+		return _false;
 	}
-	return _false;
+	client_connected = _true;
+	T_Print( "Successfully connected.\n" );
+	return _true;
 }
 
 

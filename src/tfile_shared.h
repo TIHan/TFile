@@ -29,4 +29,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PORT_CHAR_SIZE 32
 
+typedef enum {
+	CMD_DOWNLOAD_FILE
+} command_t;
+
+typedef enum {
+	EV_DOWNLOADING_FILE,
+	EV_DOWNLOAD_FINISHED
+} event_t;
+
 void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info );

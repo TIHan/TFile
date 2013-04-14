@@ -26,4 +26,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "t_common.h"
+
+int TFile_DownloadFile( const char *fileName );
 int TFile_Connect( const char *ip, const int port );

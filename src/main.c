@@ -42,5 +42,7 @@ int main( void ) {
 	TFile_StartServer();
 	TFile_Connect( "127.0.0.1", 27960 );
 	T_getchar();
+	TFile_DownloadFile(" yo");
+	T_getchar();
 	TFile_ShutdownWinsock();
 }

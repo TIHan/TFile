@@ -175,19 +175,26 @@ static int ServerThread( void *arg ) {
 		sockets[0] = server;
 		sockets[1] = server6;
 
+		for ( i = 2; i < MAX_SOCKETS; ++i ) {
+			sockets[i] = connections[i - 2];
+		}
+
 		if ( T_Select( sockets, MAX_SOCKETS, 10000, reads ) == SOCKET_ERROR ) {
 			continue;
 		}
 
 		for( i = 0; i < MAX_SOCKETS; ++i ) {
+			if ( reads[i] == 0 )
+				continue;
+
 			if ( reads[i] == server ) {
-				if ( connections[connectionCount] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) != SOCKET_ERROR ) {
+				if ( ( connections[connectionCount] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
 					++connectionCount;
 					// TODO
 					T_Print( "Client connected.\n" );
 				}
 			} else if ( reads[i] == server6 ) {
-				if ( connections[connectionCount] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) != SOCKET_ERROR ) {
+				if ( ( connections[connectionCount] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
 					++connectionCount;
 					// TODO
 					T_Print( "Client connected.\n" );
