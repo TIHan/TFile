@@ -79,11 +79,18 @@ RemoveConnection
 static void RemoveConnection( const int connectionIndex ) {
 	const int last = MAX_CONNECTIONS - 1;
 
+	int i;
+
 	TFile_TryCloseSocket( connections[connectionIndex] );
-	connections[connectionIndex] = connections[last];
+	for ( i = connectionIndex; i < last; ++i ) {
+		connections[i] = connections[i + 1];
+		connections_time[i] = connections_time[i + 1];
+	}
 	connections[last] = ZERO_SOCKET;
-	connections_time[connectionIndex] = connections_time[connectionIndex];
 	connections_time[last] = 0;
+
+	--connection_count;
+	T_Print( "Client disconnected.\n" );
 }
 
 
@@ -208,9 +215,7 @@ static int ServerThread( void *arg ) {
 			for( i = 0; i < connection_count; ++i ) {
 				if ( server_time >= connections_time[i] ) {
 					RemoveConnection( i );
-					--connection_count;
 					--i;
-					T_Print( "Client disconnected.\n" );
 				}
 			}
 			check_connections_time = 0;
