@@ -136,13 +136,3 @@ void T_itoa( const int value, char *const destination, const int size ) {
 	}
 	_T_itoa_convert( value, 0, destination, size );
 }
-
-
-/*
-====================
-T_getchar
-====================
-*/
-int T_getchar( void ) {
-	return getchar();
-}

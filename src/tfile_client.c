@@ -31,8 +31,88 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
+typedef struct {
+	SOCKET ip_socket;
+} client_message_t;
+
+static cnd_t client_condition;
+
+
+/*
+============================================================================
+
+CLIENT THREAD
+
+============================================================================
+*/
+
+#define HEARTBEAT_INTERVAL 1000 // 1 second.
+
+// Socket
+static SOCKET server;
+
+// Client Time
+static _bool time_initialized;
+static _time_t base_time;
+static _time_t client_time;
+
+// Heartbeat Time
+static _time_t send_heartbeat_time;
+
+
+/*
+====================
+ClientThread
+
+TODO: Cleanup.
+====================
+*/
+static int ClientThread( void *arg ) {
+	const client_message_t message = *( client_message_t * )arg;
+
+	send_heartbeat_time = 0;
+	time_initialized = _false;
+	server = message.ip_socket;
+
+	cnd_signal( &client_condition );
+	while ( 1 ) {
+		SOCKET read_socket = ZERO_SOCKET;
+
+		// Client's life time.
+		client_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
+
+		if ( T_Select( &server, 1, SELECT_TIMEOUT, &read_socket ) == SOCKET_ERROR ) {
+			continue;
+		}
+
+		// Interval of when to send the heartbeat.
+		send_heartbeat_time = send_heartbeat_time == 0 ? client_time + HEARTBEAT_INTERVAL : send_heartbeat_time;
+
+		// Send a heartbeat to the server at a regular interval.
+		if ( client_time >= send_heartbeat_time ) {
+			const command_t command = CMD_HEARTBEAT;
+			if ( send( server, ( char * )&command, 1, 0 ) <= 0 ) {
+				T_Error( "Unable to send heartbeat.\n" );
+			}
+			send_heartbeat_time = 0;
+		}
+	}
+}
+
+
+/*
+============================================================================
+
+CLIENT
+
+============================================================================
+*/
+
+
 static SOCKET client_socket = INVALID_SOCKET;
 static _bool client_connected = _false;
+static thrd_t client_thread;
+static mtx_t client_mutex;
 
 
 /*
@@ -109,10 +189,22 @@ TFile_ClientConnect
 ====================
 */
 int TFile_ClientConnect( const char *ip, const int port ) {
+	client_message_t message;
+
 	if ( !CreateClient( ip, port, &client_socket ) ) {
 		T_Error( "TFile_Connect: Unable to connect to %s.\n", ip );
 		return _false;
 	}
+
+	cnd_init( &client_condition );
+	mtx_init( &client_mutex, mtx_plain );
+
+	message.ip_socket = client_socket;
+	if ( thrd_create( &client_thread, ClientThread, &message ) != thrd_success ) {
+		T_FatalError( "TFile_ClientConnect: Unable to create thread" );
+	}
+
+	cnd_wait( &client_condition, &client_mutex );
 	client_connected = _true;
 	T_Print( "Successfully connected.\n" );
 	return _true;

@@ -33,7 +33,6 @@ void T_Error( const char *const format, ... );
 void T_Print( const char *const format, ... );
 
 void T_itoa( const int value, char *const destination, const int size );
-int T_getchar( void );
 
 /* OS Specific */
 unsigned long long T_Milliseconds( unsigned long long *const baseTime, int *const initialized );

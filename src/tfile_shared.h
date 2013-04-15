@@ -31,9 +31,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_PORT_SIZE 32
 #define MAX_PACKET_SIZE 1024
+#define SELECT_TIMEOUT 100000 // 100 milliseconds.
 
 typedef enum {
-	CMD_DOWNLOAD_FILE
+	CMD_DOWNLOAD_FILE,
+	CMD_HEARTBEAT
 } command_t;
 
 typedef enum {

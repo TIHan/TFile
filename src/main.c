@@ -27,6 +27,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile.h"
 #include "t_common.h"
+#include <stdio.h>
 
 
 /*
@@ -35,31 +36,35 @@ main
 ====================
 */
 int main( void ) {
+	int host;
+
 #ifdef _WIN32
 	TFile_InitWinsock();
 #endif
 
-	if ( !TFile_InitServer( 27960 ) ) {
-		T_getchar();
-		return 0;
-	}
+	printf("Can you host? ");
+	scanf("%d", &host);
+	getchar();
 
-	TFile_StartServer();
+	if ( host == 1 ) {
+		if ( !TFile_InitServer( 27960 ) ) {
+			getchar();
+			return 0;
+		}
+
+		TFile_StartServer();
+	}
 
 	if ( !TFile_ClientConnect( "127.0.0.1", 27960 ) ) {
-		T_getchar();
+		getchar();
 		return 0;
 	}
 
-	T_getchar();
-
-	TFile_ClientDownloadFile("mp_pakmaps5.pk3");
-
-	T_getchar();
+	getchar();
 
 	TFile_ShutdownClient();
 
-	T_getchar();
+	getchar();
 
 	TFile_ShutdownServer();
 

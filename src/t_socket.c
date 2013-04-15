@@ -107,7 +107,6 @@ T_Select
 */
 int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads ) {
 	SOCKET max = 0;
-	int readCount = 0;
 	struct timeval tv;
 	fd_set readSet;
 	int result;
@@ -133,12 +132,15 @@ int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKE
 	}
 
 	for( i = 0; i < size; ++i ) {
-		if ( sockets[i] == ZERO_SOCKET )
+		if ( sockets[i] == ZERO_SOCKET ) {
+			reads[i] = ZERO_SOCKET;
 			continue;
+		}
 
 		if ( FD_ISSET( sockets[i], &readSet ) ) {
-			reads[readCount] = sockets[i];
-			++readCount;
+			reads[i] = sockets[i];
+		} else {
+			reads[i] = ZERO_SOCKET;
 		}
 	}
 
