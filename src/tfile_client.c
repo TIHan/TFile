@@ -57,45 +57,97 @@ static _time_t base_time;
 static _time_t client_time;
 
 // Heartbeat Time
-static _time_t send_heartbeat_time;
+static _time_t heartbeat_time;
+
+
+/*
+====================
+ClientTime
+====================
+*/
+static void ClientTime( void ) {
+	client_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
+}
+
+
+/*
+====================
+HeartbeatTime
+====================
+*/
+static void HeartbeatTime( void ) {
+	heartbeat_time = heartbeat_time == 0 ? client_time + HEARTBEAT_INTERVAL : heartbeat_time;
+}
+
+
+/*
+====================
+TryHeartbeat
+====================
+*/
+static void TryHeartbeat( void ) {
+	if ( client_time >= heartbeat_time ) {
+		const command_t command = CMD_HEARTBEAT;
+		if ( send( server, ( char * )&command, 1, 0 ) <= 0 ) {
+			T_Error( "Unable to send heartbeat.\n" );
+		}
+		heartbeat_time = 0;
+	}
+}
+
+
+/*
+====================
+TryReceive
+====================
+*/
+static void TryReceive( void ) {
+	SOCKET read_socket = ZERO_SOCKET;
+
+	if ( T_Select( &server, 1, SELECT_TIMEOUT, &read_socket ) == SOCKET_ERROR ) {
+		T_Error( "TryReceive: Select error.\n" );
+	}
+
+	// TODO
+}
+
+
+/*
+====================
+ClientInit
+====================
+*/
+static void ClientInit( const SOCKET socket ) {
+	heartbeat_time = 0;
+	time_initialized = _false;
+	server = socket;
+}
 
 
 /*
 ====================
 ClientThread
-
-TODO: Cleanup.
 ====================
 */
 static int ClientThread( void *arg ) {
 	const client_message_t message = *( client_message_t * )arg;
 
-	send_heartbeat_time = 0;
-	time_initialized = _false;
-	server = message.ip_socket;
+	// Initialize client.
+	ClientInit( message.ip_socket );
 
 	cnd_signal( &client_condition );
 	while ( 1 ) {
-		SOCKET read_socket = ZERO_SOCKET;
-
 		// Client's life time.
-		client_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
+		ClientTime();
 
-		if ( T_Select( &server, 1, SELECT_TIMEOUT, &read_socket ) == SOCKET_ERROR ) {
-			continue;
-		}
+		// Time interval of when to send a heartbeat.
+		HeartbeatTime();
 
-		// Interval of when to send the heartbeat.
-		send_heartbeat_time = send_heartbeat_time == 0 ? client_time + HEARTBEAT_INTERVAL : send_heartbeat_time;
+		// Try to receive data from the server.
+		TryReceive();
 
-		// Send a heartbeat to the server at a regular interval.
-		if ( client_time >= send_heartbeat_time ) {
-			const command_t command = CMD_HEARTBEAT;
-			if ( send( server, ( char * )&command, 1, 0 ) <= 0 ) {
-				T_Error( "Unable to send heartbeat.\n" );
-			}
-			send_heartbeat_time = 0;
-		}
+		// Try to send a heartbeat.
+		TryHeartbeat();
 	}
 }
 
