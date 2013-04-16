@@ -52,12 +52,25 @@ T_CreateSocket
 */
 SOCKET T_CreateSocket( const int family, const struct addrinfo *const info ) {
 	const struct addrinfo *found = T_FindAddrInfo( family, info );
+	int onlyV6 = 1;
+	SOCKET sockfd;
 
 	if ( !found ) {
 		return INVALID_SOCKET;
 	}
+	sockfd = socket( found->ai_family, found->ai_socktype, found->ai_protocol );
 
-	return socket( found->ai_family, found->ai_socktype, found->ai_protocol );
+	if ( family == AF_INET6 ) {
+		if ( setsockopt( sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &onlyV6, sizeof( onlyV6 ) ) == SOCKET_ERROR ) {
+			if ( sockfd != INVALID_SOCKET ) {
+				closesocket( sockfd );
+			}
+			return INVALID_SOCKET;
+		}
+
+	}
+
+	return sockfd;
 }
 
 

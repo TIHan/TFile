@@ -25,35 +25,28 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "t_common.h"
+#include "t_internal_types.h"
 
-#if _WIN32
-#	include <winsock2.h>
-#	include <ws2tcpip.h>
+#include <time.h>
 
-#	pragma comment(lib, "ws2_32.lib")
-#else
-#	include <sys/socket.h>
-#	include <sys/unistd.h>
-#	include <sys/fcntl.h>
-#	include <netdb.h>
-#	include <arpa/inet.h>
-#	include <netinet/in.h>
-#	include <stdlib.h>
-#	include <unistd.h>
 
-typedef int SOCKET;
-#	define INVALID_SOCKET -1
-#	define SOCKET_ERROR -1
-#	define closesocket close
-#endif
+/*
+====================
+T_Milliseconds
+====================
+*/
+_time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
+#define CAST_MILLISECONDS( ts ) \
+	( ts.tv_sec * 1000 ) + ( ts.tv_nsec / 1000000 ) \
 
-#define ZERO_SOCKET 0
+	struct timespec ts;
 
-const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *const info );
-SOCKET T_CreateSocket( const int family, const struct addrinfo *const info );
-struct addrinfo T_CreateAddressInfo( void );
-int T_SocketReuseAddress( const SOCKET socket );
-int T_SocketNonBlocking( const SOCKET socket );
-int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads );
-struct addrinfo T_CreateHints( const int family, const int socketType, const int flags );
+	clock_gettime( CLOCK_MONOTONIC, &ts );
+
+	if ( !( *initialized ) ) {
+		*baseTime = CAST_MILLISECONDS( ts );
+		*initialized = _true;
+	}
+
+	return CAST_MILLISECONDS( ts ) - *baseTime;
+}

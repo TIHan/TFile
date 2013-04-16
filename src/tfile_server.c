@@ -381,6 +381,13 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 		return _false;
 	}
 
+	// Set socket to reuse address.
+	if ( T_SocketReuseAddress( *socket ) == SOCKET_ERROR ) {
+		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to reuse address.\n", *socket, result );
+		*socket = INVALID_SOCKET;
+		return _false;
+	}
+
 	// Bind socket.
 	found = T_FindAddrInfo( family, result );
 	if ( bind( *socket, found->ai_addr, found->ai_addrlen ) == SOCKET_ERROR ) {
@@ -392,13 +399,6 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to non-blocking.\n", *socket, result );
-		*socket = INVALID_SOCKET;
-		return _false;
-	}
-
-	// Set socket to reuse address.
-	if ( T_SocketReuseAddress( *socket ) == SOCKET_ERROR ) {
-		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to reuse address.\n", *socket, result );
 		*socket = INVALID_SOCKET;
 		return _false;
 	}
