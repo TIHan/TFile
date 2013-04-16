@@ -30,6 +30,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "tfile_shared.h"
 #include "tinycthread.h"
 
+#include <stdio.h>
+
 typedef struct {
 	SOCKET ip_socket;
 	SOCKET ip6_socket;
@@ -247,6 +249,45 @@ static void HandleMessage( const void *const arg ) {
 
 	cnd_signal( &server_condition );
 }
+
+typedef struct {
+	FILE *file;
+	size_t size;
+} tfile_t;
+
+
+/*
+====================
+ServerOpenFile
+====================
+*/
+int ServerOpenFile( const char *const fileName, tfile_t *const file ) {
+	FILE *const f = fopen( fileName, "rb" );
+	size_t size;
+
+	if ( !f ) {
+		return _false;
+	}
+
+	fseek( f, 0L, SEEK_END );
+	size = ftell( f );
+	rewind( f );
+
+	file->file = f;
+	file->size = size;
+	return _true;
+}
+
+
+/*
+====================
+ServerCloseFile
+====================
+*/
+void *ServerCloseFile( tfile_t *const file ) {
+	fclose( file->file );
+}
+
 
 /*
 ====================

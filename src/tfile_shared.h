@@ -39,7 +39,7 @@ typedef enum {
 } command_t;
 
 typedef enum {
-	EV_DOWNLOADING_FILE,
+	EV_FILE_CHUNK_READ,
 	EV_DOWNLOAD_FINISHED
 } event_t;
 
