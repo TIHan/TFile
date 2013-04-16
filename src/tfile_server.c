@@ -59,7 +59,7 @@ static _byte buffer[MAX_PACKET_SIZE];
 
 // Connections
 static SOCKET connections[MAX_CONNECTIONS];
-static _time_t connections_time[MAX_CONNECTIONS];
+static _time_t connection_times[MAX_CONNECTIONS];
 static int connection_count;
 
 // Server Time
@@ -84,10 +84,10 @@ static void RemoveConnection( const int connectionIndex ) {
 	TFile_TryCloseSocket( connections[connectionIndex] );
 	for ( i = connectionIndex; i < last; ++i ) {
 		connections[i] = connections[i + 1];
-		connections_time[i] = connections_time[i + 1];
+		connection_times[i] = connection_times[i + 1];
 	}
 	connections[last] = ZERO_SOCKET;
-	connections_time[last] = 0;
+	connection_times[last] = 0;
 
 	--connection_count;
 	T_Print( "Client disconnected.\n" );
@@ -104,7 +104,7 @@ TODO: This needs a lot more work.
 static void HandlePacket( const int connectionIndex ) {
 	switch( buffer[0] ) {
 	case CMD_HEARTBEAT:
-		connections_time[connectionIndex] = server_time + CONNECTION_TIMEOUT;
+		connection_times[connectionIndex] = server_time + CONNECTION_TIMEOUT;
 		break;
 	default: // Bad Message
 		break;
@@ -114,112 +114,161 @@ static void HandlePacket( const int connectionIndex ) {
 
 /*
 ====================
-ResetServerThread
+ServerTime
 ====================
 */
-static void ResetServerThread( void ) {
-	int i;
-
-	for ( i = 0; i < MAX_CONNECTIONS; ++i ) {
-		connections[i] = ZERO_SOCKET;
-		connections_time[i] = 0;
-	}
-
-	time_initialized = _false;
-	check_connections_time = 0;
+static void ServerTime( void ) {
+	server_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
 }
 
 
 /*
 ====================
-ServerThread
+ServerTime
+====================
+*/
+static void CheckConnectionsTime( void ) {
+	check_connections_time = check_connections_time == 0 ? server_time + CHECK_CONNECTIONS_INTERVAL : check_connections_time;
+}
 
-TODO: This could use some cleaning up.
-TODO: Break out normal socket errors.
+
+/*
+====================
+TryCheckConnectionTimes
+====================
+*/
+static void TryCheckConnectionTimes( void ) {
+	int i;
+
+	if ( server_time >= check_connections_time ) {
+		for( i = 0; i < connection_count; ++i ) {
+			if ( server_time >= connection_times[i] ) {
+				RemoveConnection( i );
+				--i;
+			}
+		}
+		check_connections_time = 0;
+	}
+}
+
+
+/*
+====================
+TryReceive
+====================
+*/
+static void TryReceive( const int timeout ) {
+	SOCKET sockets[MAX_SOCKETS] = { ZERO_SOCKET };
+	SOCKET reads[MAX_SOCKETS] = { ZERO_SOCKET };
+
+	static struct sockaddr_storage addr;
+	int addrLen = sizeof( addr );
+	int i;
+
+	// Set up IPv4 and IPv6 sockets.
+	sockets[0] = server;
+	sockets[1] = server6;
+
+	for ( i = 2; i < MAX_SOCKETS; ++i ) {
+		sockets[i] = connections[i - 2];
+	}
+
+	// Synchronous event demultiplexer.
+	// It's ok that we are using select as its portable.
+	// It may not be the fastest, but it's definitely quick enough for what we are trying to accomplish.
+	if ( T_Select( sockets, MAX_SOCKETS, timeout, reads ) == SOCKET_ERROR ) {
+		T_Error( "TryReceive: Select error.\n" );
+	}
+
+	for( i = 0; i < MAX_SOCKETS; ++i ) {
+		if ( reads[i] == ZERO_SOCKET )
+			continue;
+
+		// Accept connections on IPv4 and IPv6.
+		if ( reads[i] == server ) {
+			if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
+				connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
+				++connection_count;
+				// TODO
+				T_Print( "Client connected.\n" );
+			}
+		} else if ( reads[i] == server6 ) {
+			if ( ( connections[connection_count] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
+				connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
+				++connection_count;
+				// TODO
+				T_Print( "Client connected.\n" );
+			}
+		} else {
+			// Handle messages from the accepted connections.
+			int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
+			if ( bytes > 0 ) {
+				HandlePacket( i - 2 );
+			}
+		}
+	}
+}
+
+
+/*
+====================
+ServerInit
+====================
+*/
+static void ServerInit( const SOCKET socket, const SOCKET socket6 ) {
+	int i;
+
+	for ( i = 0; i < MAX_CONNECTIONS; ++i ) {
+		connections[i] = ZERO_SOCKET;
+		connection_times[i] = 0;
+	}
+
+	time_initialized = _false;
+	check_connections_time = 0;
+
+	server = socket;
+	server6 = socket6;
+
+	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
+		T_FatalError( "ServerInit: Failed to listen on socket." );
+	}
+}
+
+
+/*
+====================
+HandleMessage
+====================
+*/
+static void HandleMessage( const void *const arg ) {
+	const server_message_t message = *( server_message_t * )arg;
+
+	ServerInit( message.ip_socket, message.ip6_socket );
+
+	cnd_signal( &server_condition );
+}
+
+/*
+====================
+ServerThread
 ====================
 */
 static int ServerThread( void *arg ) {
-	const server_message_t message = *( server_message_t * )arg;
-	static struct sockaddr_storage addr;
-	int addrLen = sizeof( addr );
+	// Handle the message sent by the calling thread.
+	HandleMessage( arg );
 
-	ResetServerThread();
-
-	// Sockets
-	server = message.ip_socket;
-	server6 = message.ip6_socket;
-
-	if ( listen( server, 8 ) == SOCKET_ERROR || listen( server6, 8 ) == SOCKET_ERROR ) {
-		cnd_signal( &server_condition );
-		T_Error( "ServerThread: Failed to listen on file server socket." );
-		return _false;
-	}
-
-	cnd_signal( &server_condition );
 	while( 1 ) {
-		SOCKET sockets[MAX_SOCKETS] = { ZERO_SOCKET };
-		SOCKET reads[MAX_SOCKETS] = { ZERO_SOCKET };
-		int i;
-
 		// Server's life time.
-		server_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
+		ServerTime();
 
-		// Set up IPv4 and IPv6 sockets.
-		sockets[0] = server;
-		sockets[1] = server6;
+		// Time interval to check connections.
+		CheckConnectionsTime();
 
-		for ( i = 2; i < MAX_SOCKETS; ++i ) {
-			sockets[i] = connections[i - 2];
-		}
-
-		// Synchronous event demultiplexer.
-		// It's ok that we are using select as its portable.
-		// It may not be the fastest, but it's definitely quick enough for what we are trying to accomplish.
-		if ( T_Select( sockets, MAX_SOCKETS, SELECT_TIMEOUT, reads ) == SOCKET_ERROR ) {
-			continue;
-		}
-
-		for( i = 0; i < MAX_SOCKETS; ++i ) {
-			if ( reads[i] == ZERO_SOCKET )
-				continue;
-
-			// Accept connections on IPv4 and IPv6.
-			if ( reads[i] == server ) {
-				if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
-					connections_time[connection_count] = server_time + CONNECTION_TIMEOUT;
-					++connection_count;
-					// TODO
-					T_Print( "Client connected.\n" );
-				}
-			} else if ( reads[i] == server6 ) {
-				if ( ( connections[connection_count] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
-					connections_time[connection_count] = server_time + CONNECTION_TIMEOUT;
-					++connection_count;
-					// TODO
-					T_Print( "Client connected.\n" );
-				}
-			} else {
-				// Handle messages from the accepted connections.
-				int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
-				if ( bytes > 0 ) {
-					HandlePacket( i - 2 );
-				}
-			}
-		}
-
-		// Checking connections to see if they have been dropped.
-		check_connections_time = check_connections_time == 0 ? server_time + CHECK_CONNECTIONS_INTERVAL : check_connections_time;
+		// Try to receive data from clients.
+		TryReceive( RECEIVE_TIMEOUT );
 
 		// Check to see if any of our accepted connections were dropped.
-		if ( server_time >= check_connections_time ) {
-			for( i = 0; i < connection_count; ++i ) {
-				if ( server_time >= connections_time[i] ) {
-					RemoveConnection( i );
-					--i;
-				}
-			}
-			check_connections_time = 0;
-		}
+		TryCheckConnectionTimes();
 	}
 	return _true;
 }

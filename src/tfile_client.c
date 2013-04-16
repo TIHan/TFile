@@ -101,10 +101,10 @@ static void TryHeartbeat( void ) {
 TryReceive
 ====================
 */
-static void TryReceive( void ) {
+static void TryReceive( const int timeout ) {
 	SOCKET read_socket = ZERO_SOCKET;
 
-	if ( T_Select( &server, 1, SELECT_TIMEOUT, &read_socket ) == SOCKET_ERROR ) {
+	if ( T_Select( &server, 1, timeout, &read_socket ) == SOCKET_ERROR ) {
 		T_Error( "TryReceive: Select error.\n" );
 	}
 
@@ -156,11 +156,12 @@ static int ClientThread( void *arg ) {
 		HeartbeatTime();
 
 		// Try to receive data from the server.
-		TryReceive();
+		TryReceive( RECEIVE_TIMEOUT );
 
 		// Try to send a heartbeat.
 		TryHeartbeat();
 	}
+	return _true;
 }
 
 
