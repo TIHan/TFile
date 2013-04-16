@@ -75,6 +75,23 @@ static _time_t check_connections_time;
 
 /*
 ====================
+AcceptConnection
+====================
+*/
+static void AcceptConnection( const SOCKET socket ) {
+	static struct sockaddr_storage addr;
+	int len = sizeof( addr );
+
+	if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &len ) ) != SOCKET_ERROR ) {
+		connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
+		++connection_count;
+		T_Print( "Client connected.\n" );
+	}
+}
+
+
+/*
+====================
 RemoveConnection
 ====================
 */
@@ -162,9 +179,6 @@ TryReceive
 static void TryReceive( const int timeout ) {
 	SOCKET sockets[MAX_SOCKETS] = { ZERO_SOCKET };
 	SOCKET reads[MAX_SOCKETS] = { ZERO_SOCKET };
-
-	static struct sockaddr_storage addr;
-	int addrLen = sizeof( addr );
 	int i;
 
 	// Set up IPv4 and IPv6 sockets.
@@ -188,19 +202,9 @@ static void TryReceive( const int timeout ) {
 
 		// Accept connections on IPv4 and IPv6.
 		if ( reads[i] == server ) {
-			if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
-				connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
-				++connection_count;
-				// TODO
-				T_Print( "Client connected.\n" );
-			}
+			AcceptConnection( server );
 		} else if ( reads[i] == server6 ) {
-			if ( ( connections[connection_count] = accept( server6, ( struct sockaddr * )&addr,  &addrLen ) ) != SOCKET_ERROR ) {
-				connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
-				++connection_count;
-				// TODO
-				T_Print( "Client connected.\n" );
-			}
+			AcceptConnection( server6 );
 		} else {
 			// Handle messages from the accepted connections.
 			int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
