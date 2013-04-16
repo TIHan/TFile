@@ -126,16 +126,28 @@ static void ClientInit( const SOCKET socket ) {
 
 /*
 ====================
-ClientThread
+HandleMessage
 ====================
 */
-static int ClientThread( void *arg ) {
+static void HandleMessage( const void *const arg ) {
 	const client_message_t message = *( client_message_t * )arg;
 
 	// Initialize client.
 	ClientInit( message.ip_socket );
 
 	cnd_signal( &client_condition );
+}
+
+
+/*
+====================
+ClientThread
+====================
+*/
+static int ClientThread( void *arg ) {
+	// Handle the message sent by the calling thread.
+	HandleMessage( arg );
+
 	while ( 1 ) {
 		// Client's life time.
 		ClientTime();
