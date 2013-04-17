@@ -288,7 +288,7 @@ int ServerOpenFile( const char *const fileName, tfile_t *const file ) {
 ServerCloseFile
 ====================
 */
-void *ServerCloseFile( tfile_t *const file ) {
+void ServerCloseFile( tfile_t *const file ) {
 	fclose( file->file );
 }
 
