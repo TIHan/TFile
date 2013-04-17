@@ -28,7 +28,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "t_internal_types.h"
 
 #include <Windows.h>
-
+#pragma comment(lib, "Winmm.lib")
 
 /*
 ====================
@@ -36,6 +36,8 @@ T_Milliseconds
 ====================
 */
 _time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
+// Which should we use? Could we use both in a mixture?
+#if 0
 #define CAST_MILLISECONDS( time, frequency ) \
 	( time.QuadPart * ( 1000.0 / frequency.QuadPart ) ) \
 
@@ -51,4 +53,12 @@ _time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
 	}
 
 	return ( _time_t )CAST_MILLISECONDS( time, frequency ) - *baseTime;
+#else
+	if ( !( *initialized ) ) {
+		*baseTime = timeGetTime();
+		*initialized = _true;
+	}
+
+	return timeGetTime() - *baseTime;
+#endif
 }
