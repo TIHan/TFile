@@ -473,9 +473,7 @@ void TFile_StartServer( void ) {
 		T_FatalError( "TFile_StartServer: Unable to create thread" );
 	}
 
-	if ( mtx_trylock( &server_mutex ) != thrd_success ) {
-		cnd_wait( &server_condition, &server_mutex );
-	}
+	cnd_wait( &server_condition, &server_mutex );
 
 	mtx_destroy( &server_mutex );
 	cnd_destroy( &server_condition );
