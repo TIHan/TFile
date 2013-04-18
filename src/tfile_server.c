@@ -437,7 +437,7 @@ int TFile_InitServer( const int port ) {
 		T_FatalError( "TFile_InitServer: Server is already initialized" );
 	}
 	if ( !CreateServer( AF_INET, port, &server_socket ) || !CreateServer( AF_INET6, port, &server_socket6 ) ) {
-		TFile_CleanupFailedSocket( NULL, server_socket, NULL ); // Clean up IPv4 socket in case only the IPv6 socket failed.
+		TFile_CleeanupFailedSocket( NULL, server_socket, NULL ); // Clean up IPv4 socket in case only the IPv6 socket failed.
 		T_Error( "TFile_InitServer: Unable to initialize server.\n" );
 		return _false;
 	}
