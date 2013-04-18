@@ -29,6 +29,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_shared.h"
 #include "tinycthread.h"
+#include "t_pipe.h"
 
 #include <stdio.h>
 
@@ -38,7 +39,9 @@ typedef struct {
 } server_message_t;
 
 static cnd_t server_condition;
+static mtx_t server_mutex;
 
+static tpipe_t *server_pipe;
 
 /*
 ============================================================================
@@ -251,6 +254,8 @@ static void HandleMessage( const void *const arg ) {
 
 	ServerInit( message.ip_socket, message.ip6_socket );
 
+	mtx_lock( &server_mutex );
+	mtx_unlock( &server_mutex );
 	cnd_signal( &server_condition );
 }
 
@@ -333,7 +338,6 @@ static _bool server_running = _false;
 static SOCKET server_socket = INVALID_SOCKET;
 static SOCKET server_socket6 = INVALID_SOCKET;
 static thrd_t server_thread;
-static mtx_t server_mutex;
 
 
 /*
@@ -442,7 +446,7 @@ int TFile_InitServer( const int port ) {
 	return _true;
 }
 
-
+#include <Windows.h>
 /*
 ====================
 TFile_StartServer
@@ -461,6 +465,7 @@ void TFile_StartServer( void ) {
 
 	cnd_init( &server_condition );
 	mtx_init( &server_mutex, mtx_plain );
+	mtx_lock( &server_mutex );
 
 	message.ip_socket = server_socket;
 	message.ip6_socket = server_socket6;
@@ -468,6 +473,12 @@ void TFile_StartServer( void ) {
 		T_FatalError( "TFile_StartServer: Unable to create thread" );
 	}
 
-	cnd_wait( &server_condition, &server_mutex );
+	if ( mtx_trylock( &server_mutex ) != thrd_success ) {
+		cnd_wait( &server_condition, &server_mutex );
+	}
+
+	mtx_destroy( &server_mutex );
+	cnd_destroy( &server_condition );
+
 	server_running = _true;
 }

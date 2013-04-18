@@ -25,8 +25,5 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-typedef struct tlinked_pipe_data_s tlinked_pipe_data_t;
-typedef struct tlinked_pipe_data_s {
-	void *data;
-	tlinked_pipe_data_t *next;
-} tlinked_pipe_data_t;
+struct tpipe_s;
+typedef struct tpipe_s tpipe_t;
