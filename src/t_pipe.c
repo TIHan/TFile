@@ -31,6 +31,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "tinycthread.h"
 #include <stdlib.h>
 
+// NOT COMPLETE / USED
+
 typedef struct __linked_pipe_data_s __linked_pipe_data_t;
 typedef struct __linked_pipe_data_s {
 	void *data;
