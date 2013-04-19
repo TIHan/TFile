@@ -29,7 +29,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_shared.h"
 #include "tinycthread.h"
-#include "t_pipe.h"
 
 #include <stdio.h>
 
