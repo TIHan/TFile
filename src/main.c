@@ -66,7 +66,8 @@ int main( void ) {
 
 	getchar();
 
-	TFile_ShutdownServer();
+	if ( host == 1 )
+		TFile_ShutdownServer();
 
 #ifdef _WIN32
 	TFile_ShutdownWinsock();

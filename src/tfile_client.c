@@ -27,8 +27,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tfile_client.h"
 
-#include "t_common.h"
 #include "tfile_shared.h"
+#include "t_pipe.h"
 #include "tinycthread.h"
 
 typedef struct {
@@ -36,6 +36,8 @@ typedef struct {
 } client_message_t;
 
 static cnd_t client_condition;
+static mtx_t client_mutex;
+static tpipe_t *client_pipe;
 
 
 /*
@@ -135,6 +137,8 @@ static void HandleMessage( const void *const arg ) {
 	// Initialize client.
 	ClientInit( message.ip_socket );
 
+	mtx_lock( &client_mutex );
+	mtx_unlock( &client_mutex );
 	cnd_signal( &client_condition );
 }
 
@@ -177,7 +181,6 @@ CLIENT
 static SOCKET client_socket = INVALID_SOCKET;
 static _bool client_connected = _false;
 static thrd_t client_thread;
-static mtx_t client_mutex;
 
 
 /*
@@ -256,6 +259,7 @@ TFile_ClientConnect
 int TFile_ClientConnect( const char *ip, const int port ) {
 	client_message_t message;
 
+	client_pipe = T_CreatePipe();
 	if ( !CreateClient( ip, port, &client_socket ) ) {
 		T_Error( "TFile_Connect: Unable to connect to %s.\n", ip );
 		return _false;
@@ -263,6 +267,7 @@ int TFile_ClientConnect( const char *ip, const int port ) {
 
 	cnd_init( &client_condition );
 	mtx_init( &client_mutex, mtx_plain );
+	mtx_lock( &client_mutex );
 
 	message.ip_socket = client_socket;
 	if ( thrd_create( &client_thread, ClientThread, &message ) != thrd_success ) {
@@ -270,6 +275,10 @@ int TFile_ClientConnect( const char *ip, const int port ) {
 	}
 
 	cnd_wait( &client_condition, &client_mutex );
+
+	mtx_destroy( &client_mutex );
+	cnd_destroy( &client_condition );
+
 	client_connected = _true;
 	T_Print( "Successfully connected.\n" );
 	return _true;
@@ -283,6 +292,7 @@ TFile_ShutdownClient
 */
 void TFile_ShutdownClient( void ) {
 	client_connected = _false;
+	T_DestroyPipe( client_pipe );
 	TFile_TryCloseSocket( client_socket );
 	T_Print( "Disconnect from file server.\n" );
 }

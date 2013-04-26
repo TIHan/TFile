@@ -28,6 +28,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "tfile_server.h"
 
 #include "tfile_shared.h"
+#include "t_pipe.h"
 #include "tinycthread.h"
 
 #include <stdio.h>
@@ -39,6 +40,7 @@ typedef struct {
 
 static cnd_t server_condition;
 static mtx_t server_mutex;
+static tpipe_t *server_pipe;
 
 
 /*
@@ -420,6 +422,7 @@ TFile_ShutdownServer
 void TFile_ShutdownServer( void ) {
 	server_initialized = _false;
 	server_running = _false;
+	T_DestroyPipe( server_pipe );
 	TFile_TryCloseSocket( server_socket );
 	TFile_TryCloseSocket( server_socket6 );
 	T_Print( "File server shutdown.\n" );
@@ -435,11 +438,14 @@ int TFile_InitServer( const int port ) {
 	if ( server_initialized ) {
 		T_FatalError( "TFile_InitServer: Server is already initialized" );
 	}
+
+	server_pipe = T_CreatePipe();
 	if ( !CreateServer( AF_INET, port, &server_socket ) || !CreateServer( AF_INET6, port, &server_socket6 ) ) {
 		TFile_CleanupFailedSocket( NULL, server_socket, NULL ); // Clean up IPv4 socket in case only the IPv6 socket failed.
 		T_Error( "TFile_InitServer: Unable to initialize server.\n" );
 		return _false;
 	}
+
 	server_initialized = _true;
 	T_Print( "File server initialized.\n" );
 	return _true;
