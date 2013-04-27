@@ -48,9 +48,13 @@ typedef enum {
 
 typedef struct t_byteStream_s t_byteStream_t;
 
-t_byteStream_t *T_CreateByteStream( const t_uint size );
+t_byteStream_t *T_CreateByteStream( const t_int size );
 void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value );
 t_byte T_BSReadByte( t_byteStream_t *const byteStream );
+t_byte *T_BSGetBuffer( const t_byteStream_t *const byteStream );
+void T_BSWriteBuffer( t_byteStream_t *const byteStream, const t_byte *const buffer, const t_int size );
+void T_BSWriteString( t_byteStream_t *const byteStream, const t_char *const str );
+void T_BSReadString( t_byteStream_t *const byteStream, t_char *const str, const t_int size );
 
 #define T_BSWrite( byteStream, type, write ) \
 { \

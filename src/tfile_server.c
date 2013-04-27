@@ -65,6 +65,7 @@ static t_byte buffer[MAX_PACKET_SIZE];
 // Connections
 static SOCKET connections[MAX_CONNECTIONS];
 static t_uint64 connection_times[MAX_CONNECTIONS];
+static t_byteStream_t *connection_streams[MAX_CONNECTIONS];
 static int connection_count;
 
 // Server Time
@@ -87,6 +88,7 @@ static void AcceptConnection( const SOCKET socket ) {
 
 	if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &len ) ) != SOCKET_ERROR ) {
 		connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
+		connection_streams[connection_count] = T_Malloc( MAX_PACKET_SIZE );
 		++connection_count;
 		T_Print( "Client connected.\n" );
 	}
@@ -104,12 +106,17 @@ static void RemoveConnection( const int connectionIndex ) {
 	int i;
 
 	TFile_TryCloseSocket( connections[connectionIndex] );
+	T_Free( connection_streams[connectionIndex] );
+
 	for ( i = connectionIndex; i < last; ++i ) {
 		connections[i] = connections[i + 1];
 		connection_times[i] = connection_times[i + 1];
+		connection_streams[i] = connection_streams[i + 1];
 	}
+
 	connections[last] = ZERO_SOCKET;
 	connection_times[last] = 0;
+	connection_streams[last] = NULL;
 
 	--connection_count;
 	T_Print( "Client disconnected.\n" );
@@ -171,6 +178,15 @@ static void TryCheckConnectionTimes( void ) {
 		}
 		check_connections_time = 0;
 	}
+}
+
+
+/*
+====================
+TrySend
+====================
+*/
+static void TrySend( void ) {
 }
 
 
@@ -320,6 +336,9 @@ static t_int ServerThread( void *arg ) {
 
 		// Check to see if any of our accepted connections were dropped.
 		TryCheckConnectionTimes();
+
+		// Try to send messages to clients.
+		TrySend();
 	}
 	return 0;
 }

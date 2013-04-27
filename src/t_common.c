@@ -124,7 +124,7 @@ void T_Free( void *const memory ) {
 T_CreateByteStream
 ====================
 */
-t_byteStream_t *T_CreateByteStream( const t_uint size ) {
+t_byteStream_t *T_CreateByteStream( const t_int size ) {
 	t_byteStream_t *const byteStream = ( t_byteStream_t * )T_Malloc( sizeof( t_byteStream_t ) );
 
 	byteStream->size = 0;
@@ -148,6 +148,13 @@ void T_DestroyByteStream( t_byteStream_t *const byteStream ) {
 }
 
 
+void T_BSReset( t_byteStream_t *const byteStream ) {
+	byteStream->size = 0;
+	byteStream->readPosition = 0;
+	byteStream->writePosition = 0;
+}
+
+
 /*
 ====================
 T_BSWriteByte
@@ -159,6 +166,7 @@ void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value ) {
 		return;
 	}
 	byteStream->buffer[byteStream->writePosition++] = value;
+	++byteStream->size;
 }
 
 
@@ -168,11 +176,85 @@ T_BSReadByte
 ====================
 */
 t_byte T_BSReadByte( t_byteStream_t *const byteStream ) {
-	if ( byteStream->size >= byteStream->maxSize ) {
+	if ( byteStream->readPosition > byteStream->size ) {
 		T_Error( "T_BSReadByte: Unable to read byte from stream.\n" );
 		return 0;
 	}
 	return byteStream->buffer[byteStream->readPosition++];
+}
+
+
+/*
+====================
+T_BSWriteBuffer
+====================
+*/
+void T_BSWriteBuffer( t_byteStream_t *const byteStream, const t_byte *const buffer, const t_int size ) {
+	int i;
+
+	for ( i = 0; i < size; ++i ) {
+		T_BSWriteByte( byteStream, buffer[i] );
+	}
+}
+
+
+/*
+====================
+T_BSWriteString
+====================
+*/
+void T_BSWriteString( t_byteStream_t *const byteStream, const t_char *const str ) {
+	int i = 0;
+
+	do {
+		const t_char ch = str[i];
+
+		T_BSWriteByte( byteStream, ch );
+		if ( ch == '\0' ) {
+			break;
+		}
+		++i;
+	} while ( 1 );
+}
+
+
+/*
+====================
+T_BSReadString
+====================
+*/
+void T_BSReadString( t_byteStream_t *const byteStream, t_char *const str, const t_int size ) {
+	int i = 0;
+
+	do {
+		const t_char ch = T_BSReadByte( byteStream );
+
+		if ( ( i >= size - 1 ) || ( ch == '\0' ) ) {
+			str[i] = '\0';
+			break;
+		}
+		str[i++] = ch;
+	} while ( 1 );
+}
+
+
+/*
+====================
+T_BSGetBuffer
+====================
+*/
+t_byte *T_BSGetBuffer( const t_byteStream_t *const byteStream ) {
+	return byteStream->buffer;
+}
+
+
+/*
+====================
+T_BSGetSize
+====================
+*/
+t_int T_BSGetSize( const t_byteStream_t *const byteStream ) {
+	return byteStream->size;
 }
 
 
