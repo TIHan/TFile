@@ -27,8 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_socket.h"
 
-#include "t_internal_types.h"
-
 #define MAX_PORT_SIZE 32
 #define MAX_PACKET_SIZE 1024
 #define RECEIVE_TIMEOUT 100000 // 100 milliseconds.
@@ -43,5 +41,5 @@ typedef enum {
 	EV_DOWNLOAD_FINISHED
 } event_t;
 
-void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info );
-_bool TFile_TryCloseSocket( const SOCKET socket );
+void TFile_CleanupFailedSocket( const t_char *const error, const SOCKET socket, struct addrinfo *const info );
+t_bool TFile_TryCloseSocket( const SOCKET socket );

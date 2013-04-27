@@ -25,6 +25,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-int TFile_ClientDownloadFile( const char *fileName );
-int TFile_ClientConnect( const char *ip, const int port );
+#include "t_common.h"
+
+t_bool TFile_ClientDownloadFile( const t_char *fileName );
+t_bool TFile_ClientConnect( const t_char *ip, const t_int port );
 void TFile_ShutdownClient( void );

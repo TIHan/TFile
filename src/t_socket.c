@@ -33,7 +33,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 T_FindAddrInfo
 ====================
 */
-const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *const info ) {
+const struct addrinfo *T_FindAddrInfo( const t_int family, const struct addrinfo *const info ) {
 	if ( !info ) {
 		return NULL;
 	}
@@ -50,7 +50,7 @@ const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *
 T_CreateSocket
 ====================
 */
-SOCKET T_CreateSocket( const int family, const struct addrinfo *const info ) {
+SOCKET T_CreateSocket( const t_int family, const struct addrinfo *const info ) {
 	const struct addrinfo *found = T_FindAddrInfo( family, info );
 	int onlyV6 = 1;
 	SOCKET sockfd;
@@ -118,7 +118,7 @@ int T_SocketNonBlocking( const SOCKET socket ) {
 T_Select
 ====================
 */
-int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads ) {
+int T_Select( const SOCKET *const sockets, const t_int size, const t_int usec, SOCKET *const reads ) {
 	SOCKET max = 0;
 	struct timeval tv;
 	fd_set readSet;
@@ -166,7 +166,7 @@ int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKE
 T_CreateHints
 ====================
 */
-struct addrinfo T_CreateHints( const int family, const int socketType, const int flags ) {
+struct addrinfo T_CreateHints( const t_int family, const t_int socketType, const t_int flags ) {
 	struct addrinfo hints = T_CreateAddressInfo();
 
 	hints.ai_family = family;

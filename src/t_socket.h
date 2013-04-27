@@ -50,10 +50,10 @@ typedef int SOCKET;
 
 #define ZERO_SOCKET 0
 
-const struct addrinfo *T_FindAddrInfo( const int family, const struct addrinfo *const info );
-SOCKET T_CreateSocket( const int family, const struct addrinfo *const info );
+const struct addrinfo *T_FindAddrInfo( const t_int family, const struct addrinfo *const info );
+SOCKET T_CreateSocket( const t_int family, const struct addrinfo *const info );
 struct addrinfo T_CreateAddressInfo( void );
 int T_SocketReuseAddress( const SOCKET socket );
 int T_SocketNonBlocking( const SOCKET socket );
-int T_Select( const SOCKET *const sockets, const int size, const int usec, SOCKET *const reads );
-struct addrinfo T_CreateHints( const int family, const int socketType, const int flags );
+int T_Select( const SOCKET *const sockets, const t_int size, const t_int usec, SOCKET *const reads );
+struct addrinfo T_CreateHints( const t_int family, const t_int socketType, const t_int flags );

@@ -82,7 +82,6 @@
     <ClInclude Include="tfile_client.h" />
     <ClInclude Include="tfile_server.h" />
     <ClInclude Include="tfile.h" />
-    <ClInclude Include="t_internal_types.h" />
     <ClInclude Include="t_pipe.h" />
     <ClInclude Include="t_socket.h" />
   </ItemGroup>

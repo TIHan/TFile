@@ -25,6 +25,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "t_common.h"
+
 void TFile_ShutdownServer( void );
-int TFile_InitServer( const int port );
+t_bool TFile_InitServer( const t_int port );
 void TFile_StartServer( void );

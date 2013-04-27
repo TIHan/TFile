@@ -27,8 +27,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_pipe.h"
 
-#include "t_internal_types.h"
-#include "t_common.h"
 #include "tinycthread.h"
 
 #include <stdlib.h>
@@ -39,7 +37,7 @@ typedef struct __linked_pipe_data_s {
 	__linked_pipe_data_t *next;
 } __linked_pipe_data_t;
 
-struct tpipe_s {
+struct t_pipe_s {
 	void *data;
 	mtx_t mutex;
 	mtx_t mutexBuffer;
@@ -56,8 +54,8 @@ struct tpipe_s {
 T_PipeInit
 ====================
 */
-tpipe_t *T_CreatePipe( void ) {
-	tpipe_t *pipe = ( tpipe_t * )malloc( sizeof( tpipe_t ) );
+t_pipe_t *T_CreatePipe( void ) {
+	t_pipe_t *pipe = ( t_pipe_t * )malloc( sizeof( t_pipe_t ) );
 
 	if ( mtx_init( &pipe->mutex, mtx_try ) != thrd_success ) {
 		return NULL;
@@ -80,7 +78,7 @@ tpipe_t *T_CreatePipe( void ) {
 SendBuffer
 ====================
 */
-static void SendBuffer( tpipe_t *const pipe, void *const message ) {
+static void SendBuffer( t_pipe_t *const pipe, void *const message ) {
 	if ( pipe->linkedBuffer ) {
 		pipe->lastBuffer->next = malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->lastBuffer = pipe->lastBuffer->next;
@@ -98,7 +96,7 @@ static void SendBuffer( tpipe_t *const pipe, void *const message ) {
 Send
 ====================
 */
-static void Send( tpipe_t *const pipe, void *const message ) {
+static void Send( t_pipe_t *const pipe, void *const message ) {
 	if ( pipe->linked ) {
 		pipe->last->next = malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->last = pipe->last->next;
@@ -116,17 +114,17 @@ static void Send( tpipe_t *const pipe, void *const message ) {
 T_PipeSend
 ====================
 */
-int T_PipeSend( tpipe_t *const pipe, void *const message ) {
+t_bool T_PipeSend( t_pipe_t *const pipe, void *const message ) {
 	if ( mtx_trylock( &pipe->mutex ) != thrd_success ) {
 		mtx_lock( &pipe->mutexBuffer );
 		SendBuffer( pipe, message );
 		mtx_unlock( &pipe->mutexBuffer );
-		return _false;
+		return t_false;
 	}
 
 	Send( pipe, message );
 	mtx_unlock( &pipe->mutex );
-	return _true;
+	return t_true;
 }
 
 
@@ -135,7 +133,7 @@ int T_PipeSend( tpipe_t *const pipe, void *const message ) {
 ReceiveBuffer
 ====================
 */
-static void ReceiveBuffer( tpipe_t *const pipe ) {
+static void ReceiveBuffer( t_pipe_t *const pipe ) {
 	if ( pipe->linkedBuffer ) {
 		pipe->lastBuffer->next = pipe->linked;
 		pipe->linked = pipe->linkedBuffer;
@@ -166,9 +164,9 @@ static void __T_PipeReceive_iterate( __linked_pipe_data_t *linked, void ( *itera
 T_PipeReceive
 ====================
 */
-int T_PipeReceive( tpipe_t *const pipe, void ( *iterate )( void * ) ) {
+t_bool T_PipeReceive( t_pipe_t *const pipe, void ( *iterate )( void * ) ) {
 	if ( mtx_trylock( &pipe->mutex ) != thrd_success ) {
-		return _false;
+		return t_false;
 	}
 
 	mtx_lock( &pipe->mutexBuffer );
@@ -179,7 +177,7 @@ int T_PipeReceive( tpipe_t *const pipe, void ( *iterate )( void * ) ) {
 	pipe->linked = NULL;
 
 	mtx_unlock( &pipe->mutex );
-	return _true;
+	return t_true;
 }
 
 
@@ -190,7 +188,7 @@ T_DestroyPipe
 TODO: free linked list
 ====================
 */
-void T_DestroyPipe( tpipe_t *const pipe ) {
+void T_DestroyPipe( t_pipe_t *const pipe ) {
 	mtx_destroy( &pipe->mutex );
 	mtx_destroy( &pipe->mutexBuffer );
 	free( pipe );

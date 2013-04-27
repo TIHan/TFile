@@ -27,19 +27,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_common.h"
 
-#include "t_internal_types.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
 
-struct tbyteStream_s {
+struct t_byteStream_s {
 	int size;
 	int maxSize;
 	int readPosition;
 	int writePosition;
-	_byte *buffer;
+	t_byte *buffer;
 };
 
 
@@ -48,7 +47,7 @@ struct tbyteStream_s {
 T_FatalError
 ====================
 */
-void T_FatalError( const char *const format, ... ) {
+void T_FatalError( const t_char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -65,7 +64,7 @@ void T_FatalError( const char *const format, ... ) {
 T_Error
 ====================
 */
-void T_Error( const char *const format, ... ) {
+void T_Error( const t_char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -79,7 +78,7 @@ void T_Error( const char *const format, ... ) {
 T_Print
 ====================
 */
-void T_Print( const char *const format, ... ) {
+void T_Print( const t_char *const format, ... ) {
 	va_list list;
 
 	va_start( list, format );
@@ -93,17 +92,21 @@ void T_Print( const char *const format, ... ) {
 T_CreateByteStream
 ====================
 */
-tbyteStream_t *T_CreateByteStream( const int size ) {
-	tbyteStream_t *byteStream = ( tbyteStream_t * )malloc( sizeof( tbyteStream_t ) );
+t_byteStream_t *T_CreateByteStream( const t_int size ) {
+	t_byteStream_t *byteStream = ( t_byteStream_t * )malloc( sizeof( t_byteStream_t ) );
 
 	byteStream->size = 0;
 	byteStream->maxSize = size;
 	byteStream->readPosition = 0;
 	byteStream->writePosition = 0;
-	byteStream->buffer = ( _byte * )malloc( size );
+	byteStream->buffer = ( t_byte * )malloc( size );
 	memset( byteStream->buffer, 0, size );
 
 	return byteStream;
+}
+
+
+static void T_BSWrite( t_byteStream_t *const byteStream, const t_uint64 value ) {
 }
 
 
@@ -112,7 +115,7 @@ tbyteStream_t *T_CreateByteStream( const int size ) {
 T_BSWriteByte
 ====================
 */
-void T_BSWriteByte( tbyteStream_t *const byteStream, const _byte value ) {
+void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value ) {
 	if ( byteStream->size >= byteStream->maxSize ) {
 		T_Error( "T_BSWriteByte: Unable to write byte to stream.\n" );
 		return;
@@ -126,7 +129,7 @@ void T_BSWriteByte( tbyteStream_t *const byteStream, const _byte value ) {
 T_BSReadByte
 ====================
 */
-_byte T_BSReadByte( tbyteStream_t *const byteStream ) {
+t_byte T_BSReadByte( t_byteStream_t *const byteStream ) {
 	if ( byteStream->size >= byteStream->maxSize ) {
 		T_Error( "T_BSReadByte: Unable to read byte from stream.\n" );
 		return 0;
@@ -135,12 +138,26 @@ _byte T_BSReadByte( tbyteStream_t *const byteStream ) {
 }
 
 
+void T_BSWriteShort( t_byteStream_t *const byteStream, const t_ushort value ) {
+#define WRITE_SIZE 2
+
+	union {
+		t_byte buffer[WRITE_SIZE];
+		unsigned short value;
+	} pack_short;
+
+	pack_short.value = value;
+
+
+}
+
+
 /*
 ====================
 _T_itoa_reverse
 ====================
 */
-static void _T_itoa_reverse( const int position, char *const destination, const int length ) {
+static void _T_itoa_reverse( const t_int position, t_char *const destination, const t_int length ) {
 	const char first = destination[position];
 	const char last = destination[length - position];
 
@@ -163,7 +180,7 @@ static void _T_itoa_reverse( const int position, char *const destination, const 
 _T_itoa_convert
 ====================
 */
-static void _T_itoa_convert( const int value, const int length, char *const destination, const int size ) {
+static void _T_itoa_convert( const t_int value, const t_int length, t_char *const destination, const t_int size ) {
 	if ( length == size - 1 || value == 0 ) {
 		_T_itoa_reverse( 0, destination, length - 1 );
 		destination[length] = '\0';
@@ -179,7 +196,7 @@ static void _T_itoa_convert( const int value, const int length, char *const dest
 T_itoa
 ====================
 */
-void T_itoa( const int value, char *const destination, const int size ) {
+void T_itoa( const t_int value, t_char *const destination, const t_int size ) {
 	if ( size <= 1 ) {
 		return;
 	}

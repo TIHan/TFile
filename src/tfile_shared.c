@@ -33,7 +33,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 TFile_CleanupFailedSocket
 ====================
 */
-void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, struct addrinfo *const info ) {
+void TFile_CleanupFailedSocket( const t_char *const error, const SOCKET socket, struct addrinfo *const info ) {
 	if ( info ) {
 		freeaddrinfo( info );
 	}
@@ -49,13 +49,13 @@ void TFile_CleanupFailedSocket( const char *const error, const SOCKET socket, st
 TFile_TryCloseSocket
 ====================
 */
-_bool TFile_TryCloseSocket( const SOCKET socket ) {
+t_bool TFile_TryCloseSocket( const SOCKET socket ) {
 	if ( socket == INVALID_SOCKET )
-		return _false;
+		return t_false;
 
 	if ( closesocket( socket ) == SOCKET_ERROR ) {
 		T_Error( "TFile_TryCloseSocket: Error trying to close valid socket.\n" );
-		return _false;
+		return t_false;
 	}
-	return _true;
+	return t_true;
 }

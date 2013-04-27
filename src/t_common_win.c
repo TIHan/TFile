@@ -25,7 +25,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "t_internal_types.h"
+#include "t_common.h"
 
 #include <Windows.h>
 #pragma comment(lib, "Winmm.lib")
@@ -35,7 +35,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 T_Milliseconds
 ====================
 */
-_time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
+t_uint64 T_Milliseconds( t_uint64 *const baseTime, t_int *const initialized ) {
 // Which should we use? Could we use both in a mixture?
 #if 0
 #define CAST_MILLISECONDS( time, frequency ) \
@@ -49,14 +49,14 @@ _time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
 
 	if ( !( *initialized ) ) {
 		*baseTime = ( _time_t )CAST_MILLISECONDS( time, frequency );
-		*initialized = _true;
+		*initialized = t_true;
 	}
 
 	return ( _time_t )CAST_MILLISECONDS( time, frequency ) - *baseTime;
 #else
 	if ( !( *initialized ) ) {
 		*baseTime = timeGetTime();
-		*initialized = _true;
+		*initialized = t_true;
 	}
 
 	return timeGetTime() - *baseTime;

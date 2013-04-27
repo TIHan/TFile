@@ -37,7 +37,7 @@ typedef struct {
 
 static cnd_t client_condition;
 static mtx_t client_mutex;
-static tpipe_t *client_pipe;
+static t_pipe_t *client_pipe;
 
 
 /*
@@ -54,12 +54,12 @@ CLIENT THREAD
 static SOCKET server;
 
 // Client Time
-static _bool time_initialized;
-static _time_t base_time;
-static _time_t client_time;
+static t_bool time_initialized;
+static t_uint64 base_time;
+static t_uint64 client_time;
 
 // Heartbeat Time
-static _time_t heartbeat_time;
+static t_uint64 heartbeat_time;
 
 
 /*
@@ -121,7 +121,7 @@ ClientInit
 */
 static void ClientInit( const SOCKET socket ) {
 	heartbeat_time = 0;
-	time_initialized = _false;
+	time_initialized = t_false;
 	server = socket;
 }
 
@@ -148,7 +148,7 @@ static void HandleMessage( const void *const arg ) {
 ClientThread
 ====================
 */
-static int ClientThread( void *arg ) {
+static t_int ClientThread( void *arg ) {
 	// Handle the message sent by the calling thread.
 	HandleMessage( arg );
 
@@ -165,7 +165,7 @@ static int ClientThread( void *arg ) {
 		// Try to send a heartbeat.
 		TryHeartbeat();
 	}
-	return _true;
+	return 0;
 }
 
 
@@ -179,7 +179,7 @@ CLIENT
 
 
 static SOCKET client_socket = INVALID_SOCKET;
-static _bool client_connected = _false;
+static t_bool client_connected = t_false;
 static thrd_t client_thread;
 
 
@@ -190,45 +190,45 @@ CreateClient
 TODO: Break out normal socket errors.
 ====================
 */
-static _bool CreateClient( const char *const ip, const int port, SOCKET *const socket ) {
+static t_bool CreateClient( const t_char *const ip, const t_int port, SOCKET *const socket ) {
 	const struct addrinfo hints = T_CreateHints( AF_UNSPEC, SOCK_STREAM, 0 );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
-	char portStr[MAX_PORT_SIZE];
+	t_char portStr[MAX_PORT_SIZE];
 
 	T_itoa( port, portStr, MAX_PORT_SIZE );
 
 	// Get address info.
 	if ( getaddrinfo( ip, portStr, &hints, &result ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to get address information.\n", INVALID_SOCKET, result );
-		return _false;
+		return t_false;
 	}
 
 	// Attempt to create a socket.
 	*socket = T_CreateSocket( AF_UNSPEC, result );
 	if ( *socket == INVALID_SOCKET ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to create socket.\n", INVALID_SOCKET, result );
-		return _false;
+		return t_false;
 	}
 
 	// Connect to remote host.
 	if ( connect( *socket, result->ai_addr, result->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to connect to remote host.\n", *socket, result );
 		*socket = INVALID_SOCKET;
-		return _false;
+		return t_false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateClient: Unable to set socket to non-blocking.\n", *socket, result );
 		*socket = INVALID_SOCKET;
-		return _false;
+		return t_false;
 	}
 
 	// Free up what was allocated from getaddrinfo.
 	freeaddrinfo( result );
-	return _true;
+	return t_true;
 }
 
 
@@ -237,17 +237,17 @@ static _bool CreateClient( const char *const ip, const int port, SOCKET *const s
 TFile_ClientDownloadFile
 ====================
 */
-int TFile_ClientDownloadFile( const char *fileName ) {
-	_byte cmd = CMD_DOWNLOAD_FILE;
+t_bool TFile_ClientDownloadFile( const t_char *fileName ) {
+	t_byte cmd = CMD_DOWNLOAD_FILE;
 	if ( !client_connected ) {
 		T_FatalError( "TFile_DownloadFile: Not connected" );
 	}
 
 	if ( send( client_socket, ( char *)&cmd, 1, 0 ) == SOCKET_ERROR ) {
 		T_Error( "TFile_DownloadFile: Failed to download file.\n" );
-		return _false;
+		return t_false;
 	}
-	return _true;
+	return t_true;
 }
 
 
@@ -256,13 +256,13 @@ int TFile_ClientDownloadFile( const char *fileName ) {
 TFile_ClientConnect
 ====================
 */
-int TFile_ClientConnect( const char *ip, const int port ) {
+t_bool TFile_ClientConnect( const t_char *ip, const t_int port ) {
 	client_message_t message;
 
 	client_pipe = T_CreatePipe();
 	if ( !CreateClient( ip, port, &client_socket ) ) {
 		T_Error( "TFile_Connect: Unable to connect to %s.\n", ip );
-		return _false;
+		return t_false;
 	}
 
 	cnd_init( &client_condition );
@@ -279,9 +279,9 @@ int TFile_ClientConnect( const char *ip, const int port ) {
 	mtx_destroy( &client_mutex );
 	cnd_destroy( &client_condition );
 
-	client_connected = _true;
+	client_connected = t_true;
 	T_Print( "Successfully connected.\n" );
-	return _true;
+	return t_true;
 }
 
 
@@ -291,7 +291,7 @@ TFile_ShutdownClient
 ====================
 */
 void TFile_ShutdownClient( void ) {
-	client_connected = _false;
+	client_connected = t_false;
 	T_DestroyPipe( client_pipe );
 	TFile_TryCloseSocket( client_socket );
 	T_Print( "Disconnect from file server.\n" );

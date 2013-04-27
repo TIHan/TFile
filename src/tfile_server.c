@@ -40,7 +40,7 @@ typedef struct {
 
 static cnd_t server_condition;
 static mtx_t server_mutex;
-static tpipe_t *server_pipe;
+static t_pipe_t *server_pipe;
 
 
 /*
@@ -60,20 +60,20 @@ SERVER THREAD
 // Sockets
 static SOCKET server;
 static SOCKET server6;
-static _byte buffer[MAX_PACKET_SIZE];
+static t_byte buffer[MAX_PACKET_SIZE];
 
 // Connections
 static SOCKET connections[MAX_CONNECTIONS];
-static _time_t connection_times[MAX_CONNECTIONS];
+static t_uint64 connection_times[MAX_CONNECTIONS];
 static int connection_count;
 
 // Server Time
-static _bool time_initialized;
-static _time_t base_time;
-static _time_t server_time;
+static t_bool time_initialized;
+static t_uint64 base_time;
+static t_uint64 server_time;
 
 // Check Connections
-static _time_t check_connections_time;
+static t_uint64 check_connections_time;
 
 
 /*
@@ -232,7 +232,7 @@ static void ServerInit( const SOCKET socket, const SOCKET socket6 ) {
 		connection_times[i] = 0;
 	}
 
-	time_initialized = _false;
+	time_initialized = t_false;
 	check_connections_time = 0;
 
 	server = socket;
@@ -262,7 +262,7 @@ static void HandleMessage( const void *const arg ) {
 typedef struct {
 	FILE *file;
 	size_t size;
-} tfile_t;
+} t_file_t;
 
 
 // File calls not used yet.
@@ -271,12 +271,12 @@ typedef struct {
 ServerOpenFile
 ====================
 */
-int ServerOpenFile( const char *const fileName, tfile_t *const file ) {
+t_bool ServerOpenFile( const char *const fileName, t_file_t *const file ) {
 	FILE *const f = fopen( fileName, "rb" );
 	size_t size;
 
 	if ( !f ) {
-		return _false;
+		return t_false;
 	}
 
 	fseek( f, 0L, SEEK_END );
@@ -285,7 +285,7 @@ int ServerOpenFile( const char *const fileName, tfile_t *const file ) {
 
 	file->file = f;
 	file->size = size;
-	return _true;
+	return t_true;
 }
 
 
@@ -294,7 +294,7 @@ int ServerOpenFile( const char *const fileName, tfile_t *const file ) {
 ServerCloseFile
 ====================
 */
-void ServerCloseFile( tfile_t *const file ) {
+void ServerCloseFile( t_file_t *const file ) {
 	fclose( file->file );
 }
 
@@ -304,7 +304,7 @@ void ServerCloseFile( tfile_t *const file ) {
 ServerThread
 ====================
 */
-static int ServerThread( void *arg ) {
+static t_int ServerThread( void *arg ) {
 	// Handle the message sent by the calling thread.
 	HandleMessage( arg );
 
@@ -321,7 +321,7 @@ static int ServerThread( void *arg ) {
 		// Check to see if any of our accepted connections were dropped.
 		TryCheckConnectionTimes();
 	}
-	return _true;
+	return 0;
 }
 
 
@@ -334,8 +334,8 @@ SERVER
 */
 
 
-static _bool server_initialized = _false;
-static _bool server_running = _false;
+static t_bool server_initialized = t_false;
+static t_bool server_running = t_false;
 static SOCKET server_socket = INVALID_SOCKET;
 static SOCKET server_socket6 = INVALID_SOCKET;
 static thrd_t server_thread;
@@ -346,7 +346,7 @@ static thrd_t server_thread;
 CreateServerHints
 ====================
 */
-static struct addrinfo CreateServerHints( const int family, const int socketType, const int flags ) {
+static struct addrinfo CreateServerHints( const t_int family, const t_int socketType, const t_int flags ) {
 	// We can only create sockets for ipv4 and ipv6.
 	if ( family != AF_INET && family != AF_INET6 ) {
 		T_FatalError( "CreateServerHints: Bad socket family type" );
@@ -363,34 +363,34 @@ CreateServer
 TODO: Break out normal socket errors.
 ====================
 */
-static _bool CreateServer( const int family, const int port, SOCKET *const socket ) {
+static t_bool CreateServer( const t_int family, const t_int port, SOCKET *const socket ) {
 	const struct addrinfo hints = CreateServerHints( family, SOCK_STREAM, AI_PASSIVE );
 
 	struct addrinfo defaultInfo = T_CreateAddressInfo();
 	struct addrinfo *result = &defaultInfo;
 	const struct addrinfo *found;
-	char portStr[MAX_PORT_SIZE];
+	t_char portStr[MAX_PORT_SIZE];
 
 	T_itoa( port, portStr, MAX_PORT_SIZE );
 
 	// Get address info.
 	if ( getaddrinfo( 0, portStr, &hints, &result ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to get address information.\n", INVALID_SOCKET, result );
-		return _false;
+		return t_false;
 	}
 
 	// Attempt to create a socket.
 	*socket = T_CreateSocket( family, result );
 	if ( *socket == INVALID_SOCKET ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to create socket.\n", INVALID_SOCKET, result );
-		return _false;
+		return t_false;
 	}
 
 	// Set socket to reuse address.
 	if ( T_SocketReuseAddress( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to reuse address.\n", *socket, result );
 		*socket = INVALID_SOCKET;
-		return _false;
+		return t_false;
 	}
 
 	// Bind socket.
@@ -398,19 +398,19 @@ static _bool CreateServer( const int family, const int port, SOCKET *const socke
 	if ( bind( *socket, found->ai_addr, found->ai_addrlen ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to bind socket.\n", *socket, result );
 		*socket = INVALID_SOCKET;
-		return _false;
+		return t_false;
 	}
 
 	// Set socket to non-blocking.
 	if ( T_SocketNonBlocking( *socket ) == SOCKET_ERROR ) {
 		TFile_CleanupFailedSocket( "CreateServer: Unable to set socket to non-blocking.\n", *socket, result );
 		*socket = INVALID_SOCKET;
-		return _false;
+		return t_false;
 	}
 
 	// Free up what was allocated from getaddrinfo.
 	freeaddrinfo( result );
-	return _true;
+	return t_true;
 }
 
 
@@ -420,8 +420,8 @@ TFile_ShutdownServer
 ====================
 */
 void TFile_ShutdownServer( void ) {
-	server_initialized = _false;
-	server_running = _false;
+	server_initialized = t_false;
+	server_running = t_false;
 	T_DestroyPipe( server_pipe );
 	TFile_TryCloseSocket( server_socket );
 	TFile_TryCloseSocket( server_socket6 );
@@ -434,7 +434,7 @@ void TFile_ShutdownServer( void ) {
 TFile_InitServer
 ====================
 */
-int TFile_InitServer( const int port ) {
+t_bool TFile_InitServer( const t_int port ) {
 	if ( server_initialized ) {
 		T_FatalError( "TFile_InitServer: Server is already initialized" );
 	}
@@ -443,12 +443,12 @@ int TFile_InitServer( const int port ) {
 	if ( !CreateServer( AF_INET, port, &server_socket ) || !CreateServer( AF_INET6, port, &server_socket6 ) ) {
 		TFile_CleanupFailedSocket( NULL, server_socket, NULL ); // Clean up IPv4 socket in case only the IPv6 socket failed.
 		T_Error( "TFile_InitServer: Unable to initialize server.\n" );
-		return _false;
+		return t_false;
 	}
 
-	server_initialized = _true;
+	server_initialized = t_true;
 	T_Print( "File server initialized.\n" );
-	return _true;
+	return t_true;
 }
 
 
@@ -483,5 +483,5 @@ void TFile_StartServer( void ) {
 	mtx_destroy( &server_mutex );
 	cnd_destroy( &server_condition );
 
-	server_running = _true;
+	server_running = t_true;
 }

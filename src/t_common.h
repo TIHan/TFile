@@ -28,15 +28,33 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _T_COMMON_H_
 #define _T_COMMON_H_
 
-typedef struct tbyteStream_s tbyteStream_t;
+typedef unsigned char t_byte;
+typedef char t_char;
+typedef unsigned short t_ushort;
+typedef short t_short;
 
-void T_FatalError( const char *const format, ... );
-void T_Error( const char *const format, ... );
-void T_Print( const char *const format, ... );
+#ifdef _WIN32
+typedef __int32 t_int;
+typedef unsigned t_uint;
+typedef __int64 t_int64;
+typedef unsigned __int64 t_uint64;
+#else
+#endif
 
-void T_itoa( const int value, char *const destination, const int size );
+typedef enum {
+	t_false,
+	t_true
+} t_bool;
+
+typedef struct t_byteStream_s t_byteStream_t;
+
+void T_FatalError( const t_char *const format, ... );
+void T_Error( const t_char *const format, ... );
+void T_Print( const t_char *const format, ... );
+
+void T_itoa( const t_int value, t_char *const destination, const t_int size );
 
 /* OS Specific */
-unsigned long long T_Milliseconds( unsigned long long *const baseTime, int *const initialized );
+t_uint64 T_Milliseconds( t_uint64 *const baseTime, t_int *const initialized );
 
 #endif // _T_COMMON_H_

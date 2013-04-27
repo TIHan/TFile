@@ -25,9 +25,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-typedef struct tpipe_s tpipe_t;
+#include "t_common.h"
 
-tpipe_t *T_CreatePipe( void );
-int T_PipeSend( tpipe_t *const pipe, void *const message );
-int T_PipeReceive( tpipe_t *const pipe, void ( *iterate )( void * ) );
-void T_DestroyPipe( tpipe_t *const pipe );
+typedef struct t_pipe_s t_pipe_t;
+
+t_pipe_t *T_CreatePipe( void );
+t_bool T_PipeSend( t_pipe_t *const pipe, void *const message );
+t_bool T_PipeReceive( t_pipe_t *const pipe, void ( *iterate )( void * ) );
+void T_DestroyPipe( t_pipe_t *const pipe );
