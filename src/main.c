@@ -36,12 +36,18 @@ main
 ====================
 */
 int main( void ) {
+	t_byteStream_t *byteStream = T_CreateByteStream( 1024 );
+	int read;
 	int host;
 
 #ifdef _WIN32
 	TFile_InitWinsock();
 #endif
 
+	T_BSWrite( byteStream, t_int, 383838 );
+	T_BSRead( byteStream, t_int, read );
+
+	printf( "READ BYTE: %ld\n", read );
 	printf("Can you host? ");
 	scanf("%d", &host);
 	getchar();

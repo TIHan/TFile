@@ -106,10 +106,6 @@ t_byteStream_t *T_CreateByteStream( const t_int size ) {
 }
 
 
-static void T_BSWrite( t_byteStream_t *const byteStream, const t_uint64 value ) {
-}
-
-
 /*
 ====================
 T_BSWriteByte
@@ -135,20 +131,6 @@ t_byte T_BSReadByte( t_byteStream_t *const byteStream ) {
 		return 0;
 	}
 	return byteStream->buffer[byteStream->readPosition++];
-}
-
-
-void T_BSWriteShort( t_byteStream_t *const byteStream, const t_ushort value ) {
-#define WRITE_SIZE 2
-
-	union {
-		t_byte buffer[WRITE_SIZE];
-		unsigned short value;
-	} pack_short;
-
-	pack_short.value = value;
-
-
 }
 
 

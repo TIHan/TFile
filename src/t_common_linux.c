@@ -25,7 +25,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "t_internal_types.h"
+#include "t_common.h"
 
 #include <time.h>
 
@@ -35,7 +35,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 T_Milliseconds
 ====================
 */
-_time_t T_Milliseconds( _time_t *const baseTime, int *const initialized ) {
+t_uint64 T_Milliseconds( t_uint64 *const baseTime, t_int *const initialized ) {
 #define CAST_MILLISECONDS( ts ) \
 	( ts.tv_sec * 1000 ) + ( ts.tv_nsec / 1000000 ) \
 

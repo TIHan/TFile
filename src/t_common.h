@@ -48,13 +48,52 @@ typedef enum {
 
 typedef struct t_byteStream_s t_byteStream_t;
 
+t_byteStream_t *T_CreateByteStream( const t_int size );
+void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value );
+t_byte T_BSReadByte( t_byteStream_t *const byteStream );
+
+#define T_BSWrite( byteStream, type, write ) \
+{ \
+	const t_int __size = sizeof( type ); \
+	\
+	int __i; \
+	\
+	union { \
+		t_byte buffer[sizeof( type )]; \
+		type writeValue; \
+	} __pack; \
+	\
+	__pack.writeValue = write; \
+	\
+	for ( __i = 0; __i < __size; ++__i ) { \
+		T_BSWriteByte( byteStream, __pack.buffer[__i] ); \
+	} \
+}
+
+#define T_BSRead( byteStream, type, read ) \
+{ \
+	const t_int __size = sizeof( type ); \
+	\
+	int __i; \
+	\
+	union { \
+		t_byte buffer[sizeof( type )]; \
+		type readValue; \
+	} __unpack; \
+	\
+	for ( __i = 0; __i < __size; ++__i ) { \
+		__unpack.buffer[__i] = T_BSReadByte( byteStream ); \
+	} \
+	\
+	read = __unpack.readValue; \
+}
+
 void T_FatalError( const t_char *const format, ... );
 void T_Error( const t_char *const format, ... );
 void T_Print( const t_char *const format, ... );
 
-void T_itoa( const t_int value, t_char *const destination, const t_int size );
-
-/* OS Specific */
 t_uint64 T_Milliseconds( t_uint64 *const baseTime, t_int *const initialized );
+
+void T_itoa( const t_int value, t_char *const destination, const t_int size );
 
 #endif // _T_COMMON_H_
