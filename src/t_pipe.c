@@ -55,7 +55,7 @@ T_PipeInit
 ====================
 */
 t_pipe_t *T_CreatePipe( void ) {
-	t_pipe_t *pipe = ( t_pipe_t * )malloc( sizeof( t_pipe_t ) );
+	t_pipe_t *pipe = ( t_pipe_t * )T_Malloc( sizeof( t_pipe_t ) );
 
 	if ( mtx_init( &pipe->mutex, mtx_try ) != thrd_success ) {
 		return NULL;
@@ -80,10 +80,10 @@ SendBuffer
 */
 static void SendBuffer( t_pipe_t *const pipe, void *const message ) {
 	if ( pipe->linkedBuffer ) {
-		pipe->lastBuffer->next = malloc( sizeof( __linked_pipe_data_t ) );
+		pipe->lastBuffer->next = T_Malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->lastBuffer = pipe->lastBuffer->next;
 	} else {
-		pipe->linkedBuffer = malloc( sizeof( __linked_pipe_data_t ) );
+		pipe->linkedBuffer = T_Malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->lastBuffer = pipe->linkedBuffer;
 	}
 	pipe->lastBuffer->data = message;
@@ -98,10 +98,10 @@ Send
 */
 static void Send( t_pipe_t *const pipe, void *const message ) {
 	if ( pipe->linked ) {
-		pipe->last->next = malloc( sizeof( __linked_pipe_data_t ) );
+		pipe->last->next = T_Malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->last = pipe->last->next;
 	} else {
-		pipe->linked = malloc( sizeof( __linked_pipe_data_t ) );
+		pipe->linked = T_Malloc( sizeof( __linked_pipe_data_t ) );
 		pipe->last = pipe->linked;
 	}
 	pipe->last->data = message;
@@ -155,7 +155,7 @@ static void __T_PipeReceive_iterate( __linked_pipe_data_t *linked, void ( *itera
 
 	iterate( linked->data );
 	__T_PipeReceive_iterate( linked->next, iterate );
-	free( linked );
+	T_Free( linked );
 }
 
 
@@ -191,5 +191,5 @@ TODO: free linked list
 void T_DestroyPipe( t_pipe_t *const pipe ) {
 	mtx_destroy( &pipe->mutex );
 	mtx_destroy( &pipe->mutexBuffer );
-	free( pipe );
+	T_Free( pipe );
 }

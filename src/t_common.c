@@ -89,20 +89,62 @@ void T_Print( const t_char *const format, ... ) {
 
 /*
 ====================
+T_Malloc
+====================
+*/
+void *T_Malloc( const t_uint size ) {
+	return malloc( size );
+}
+
+
+/*
+====================
+T_Malloc0
+====================
+*/
+void *T_Malloc0( const t_uint size ) {
+	void *const memory = malloc( size );
+	memset( memory, 0, size );
+	return memory;
+}
+
+
+/*
+====================
+T_Free
+====================
+*/
+void T_Free( void *const memory ) {
+	free( memory );
+}
+
+
+/*
+====================
 T_CreateByteStream
 ====================
 */
-t_byteStream_t *T_CreateByteStream( const t_int size ) {
-	t_byteStream_t *byteStream = ( t_byteStream_t * )malloc( sizeof( t_byteStream_t ) );
+t_byteStream_t *T_CreateByteStream( const t_uint size ) {
+	t_byteStream_t *const byteStream = ( t_byteStream_t * )T_Malloc( sizeof( t_byteStream_t ) );
 
 	byteStream->size = 0;
 	byteStream->maxSize = size;
 	byteStream->readPosition = 0;
 	byteStream->writePosition = 0;
-	byteStream->buffer = ( t_byte * )malloc( size );
-	memset( byteStream->buffer, 0, size );
+	byteStream->buffer = T_Malloc( size );
 
 	return byteStream;
+}
+
+
+/*
+====================
+T_DestroyByteStream
+====================
+*/
+void T_DestroyByteStream( t_byteStream_t *const byteStream ) {
+	T_Free( byteStream->buffer );
+	T_Free( byteStream );
 }
 
 

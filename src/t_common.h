@@ -35,7 +35,7 @@ typedef short t_short;
 
 #ifdef _WIN32
 typedef __int32 t_int;
-typedef unsigned t_uint;
+typedef unsigned __int32 t_uint;
 typedef __int64 t_int64;
 typedef unsigned __int64 t_uint64;
 #else
@@ -48,7 +48,7 @@ typedef enum {
 
 typedef struct t_byteStream_s t_byteStream_t;
 
-t_byteStream_t *T_CreateByteStream( const t_int size );
+t_byteStream_t *T_CreateByteStream( const t_uint size );
 void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value );
 t_byte T_BSReadByte( t_byteStream_t *const byteStream );
 
@@ -91,6 +91,9 @@ t_byte T_BSReadByte( t_byteStream_t *const byteStream );
 void T_FatalError( const t_char *const format, ... );
 void T_Error( const t_char *const format, ... );
 void T_Print( const t_char *const format, ... );
+void *T_Malloc( const t_uint size );
+void *T_Malloc0( const t_uint size );
+void T_Free( void *const memory );
 
 t_uint64 T_Milliseconds( t_uint64 *const baseTime, t_int *const initialized );
 
