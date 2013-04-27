@@ -39,7 +39,7 @@ typedef struct __linked_pipe_data_s {
 	__linked_pipe_data_t *next;
 } __linked_pipe_data_t;
 
-typedef struct tpipe_s {
+struct tpipe_s {
 	void *data;
 	mtx_t mutex;
 	mtx_t mutexBuffer;

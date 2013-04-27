@@ -28,6 +28,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _T_COMMON_H_
 #define _T_COMMON_H_
 
+typedef struct tbyteStream_s tbyteStream_t;
+
 void T_FatalError( const char *const format, ... );
 void T_Error( const char *const format, ... );
 void T_Print( const char *const format, ... );

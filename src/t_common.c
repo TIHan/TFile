@@ -25,10 +25,22 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "t_common.h"
+
+#include "t_internal_types.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+
+
+struct tbyteStream_s {
+	int size;
+	int maxSize;
+	int readPosition;
+	int writePosition;
+	_byte *buffer;
+};
 
 
 /*
@@ -73,6 +85,53 @@ void T_Print( const char *const format, ... ) {
 	va_start( list, format );
 	vprintf( format, list );
 	va_end( list );
+}
+
+
+/*
+====================
+T_CreateByteStream
+====================
+*/
+tbyteStream_t *T_CreateByteStream( const int size ) {
+	tbyteStream_t *byteStream = ( tbyteStream_t * )malloc( sizeof( tbyteStream_t ) );
+
+	byteStream->size = 0;
+	byteStream->maxSize = size;
+	byteStream->readPosition = 0;
+	byteStream->writePosition = 0;
+	byteStream->buffer = ( _byte * )malloc( size );
+	memset( byteStream->buffer, 0, size );
+
+	return byteStream;
+}
+
+
+/*
+====================
+T_BSWriteByte
+====================
+*/
+void T_BSWriteByte( tbyteStream_t *const byteStream, const _byte value ) {
+	if ( byteStream->size >= byteStream->maxSize ) {
+		T_Error( "T_BSWriteByte: Unable to write byte to stream.\n" );
+		return;
+	}
+	byteStream->buffer[byteStream->writePosition++] = value;
+}
+
+
+/*
+====================
+T_BSReadByte
+====================
+*/
+_byte T_BSReadByte( tbyteStream_t *const byteStream ) {
+	if ( byteStream->size >= byteStream->maxSize ) {
+		T_Error( "T_BSReadByte: Unable to read byte from stream.\n" );
+		return 0;
+	}
+	return byteStream->buffer[byteStream->readPosition++];
 }
 
 
