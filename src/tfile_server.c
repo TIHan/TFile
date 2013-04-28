@@ -56,17 +56,17 @@ SERVER THREAD
 #define MAX_SOCKETS MAX_CONNECTIONS + 2 // 2 represents IPv4 and IPv6 sockets.
 #define CONNECTION_TIMEOUT 5000 // 5 seconds.
 #define CHECK_CONNECTIONS_INTERVAL 1000 // 1 second.
+#define MAX_EVENT_QUEUE_SIZE 8192
 
 // Sockets
 static SOCKET server;
 static SOCKET server6;
-static t_byte buffer[MAX_PACKET_SIZE];
 
 // Connections
 static SOCKET connections[MAX_CONNECTIONS];
 static t_uint64 connection_times[MAX_CONNECTIONS];
 static t_byteStream_t *connection_streams[MAX_CONNECTIONS];
-static int connection_count;
+static t_int connection_count;
 
 // Server Time
 static t_bool time_initialized;
@@ -84,11 +84,11 @@ AcceptConnection
 */
 static void AcceptConnection( const SOCKET socket ) {
 	static struct sockaddr_storage addr;
-	int len = sizeof( addr );
+	t_int len = sizeof( addr );
 
 	if ( ( connections[connection_count] = accept( server, ( struct sockaddr * )&addr,  &len ) ) != SOCKET_ERROR ) {
 		connection_times[connection_count] = server_time + CONNECTION_TIMEOUT;
-		connection_streams[connection_count] = T_Malloc( MAX_PACKET_SIZE );
+		connection_streams[connection_count] = T_CreateByteStream( MAX_PACKET_SIZE );
 		++connection_count;
 		T_Print( "Client connected.\n" );
 	}
@@ -100,10 +100,10 @@ static void AcceptConnection( const SOCKET socket ) {
 RemoveConnection
 ====================
 */
-static void RemoveConnection( const int connectionIndex ) {
-	const int last = MAX_CONNECTIONS - 1;
+static void RemoveConnection( const t_int connectionIndex ) {
+	const t_int last = MAX_CONNECTIONS - 1;
 
-	int i;
+	t_int i;
 
 	TFile_TryCloseSocket( connections[connectionIndex] );
 	T_Free( connection_streams[connectionIndex] );
@@ -125,17 +125,50 @@ static void RemoveConnection( const int connectionIndex ) {
 
 /*
 ====================
-HandlePacket
-
-TODO: This needs a lot more work.
+CMD_Heartbeat
 ====================
 */
-static void HandlePacket( const int connectionIndex ) {
-	switch( buffer[0] ) {
+static void CMD_Heartbeat( const int connectionIndex ) {
+	connection_times[connectionIndex] = server_time + CONNECTION_TIMEOUT;
+}
+
+
+/*
+====================
+CMD_Disconnect
+====================
+*/
+static void CMD_Disconnect( const int connectionIndex ) {
+	RemoveConnection( connectionIndex );
+}
+
+
+/*
+====================
+HandlePacket
+====================
+*/
+static void HandlePacket( const t_int connectionIndex, const t_byte *const buffer, const t_int size ) {
+	if ( size <= 0 )
+		return;
+
+	T_BSWriteBuffer( connection_streams[connectionIndex], buffer, size );
+}
+
+
+/*
+====================
+HandleClientCommand
+====================
+*/
+static void HandleClientCommand( const t_byte cmd, const t_int connectionIndex ) {
+	switch ( cmd ) {
 	case CMD_HEARTBEAT:
-		connection_times[connectionIndex] = server_time + CONNECTION_TIMEOUT;
+		CMD_Heartbeat( connectionIndex );
 		break;
-	default: // Bad Message
+	case CMD_DISCONNECT:
+	default:
+		CMD_Disconnect( connectionIndex );
 		break;
 	}
 }
@@ -143,11 +176,29 @@ static void HandlePacket( const int connectionIndex ) {
 
 /*
 ====================
+ProcessClientCommands
+====================
+*/
+static void ProcessClientCommands( void ) {
+	t_int i;
+
+	for ( i = 0; i < connection_count; ++i ) {
+		t_byteStream_t *const byteStream = connection_streams[i];
+
+		while ( T_BSCanRead( byteStream ) ) {
+			HandleClientCommand( T_BSReadByte( byteStream ), i );
+		}
+		T_BSReset( byteStream );
+	}
+}
+
+/*
+====================
 ServerTime
 ====================
 */
 static void ServerTime( void ) {
-	server_time = T_Milliseconds( &base_time, ( int * )&time_initialized );
+	server_time = T_Milliseconds( &base_time, ( t_int * )&time_initialized );
 }
 
 
@@ -167,7 +218,7 @@ TryCheckConnectionTimes
 ====================
 */
 static void TryCheckConnectionTimes( void ) {
-	int i;
+	t_int i;
 
 	if ( server_time >= check_connections_time ) {
 		for( i = 0; i < connection_count; ++i ) {
@@ -183,22 +234,13 @@ static void TryCheckConnectionTimes( void ) {
 
 /*
 ====================
-TrySend
-====================
-*/
-static void TrySend( void ) {
-}
-
-
-/*
-====================
 TryReceive
 ====================
 */
 static void TryReceive( const int timeout ) {
 	SOCKET sockets[MAX_SOCKETS] = { ZERO_SOCKET };
 	SOCKET reads[MAX_SOCKETS] = { ZERO_SOCKET };
-	int i;
+	t_int i;
 
 	// Set up IPv4 and IPv6 sockets.
 	sockets[0] = server;
@@ -225,11 +267,10 @@ static void TryReceive( const int timeout ) {
 		} else if ( reads[i] == server6 ) {
 			AcceptConnection( server6 );
 		} else {
-			// Handle messages from the accepted connections.
-			int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
-			if ( bytes > 0 ) {
-				HandlePacket( i - 2 );
-			}
+			static t_byte buffer[MAX_PACKET_SIZE];
+			// Handle packets from the accepted connections.
+			t_int bytes = recv( reads[i], ( char * )buffer, MAX_PACKET_SIZE, 0 );
+			HandlePacket( i - 2, buffer, bytes ); 
 		}
 	}
 }
@@ -241,7 +282,7 @@ ServerInit
 ====================
 */
 static void ServerInit( const SOCKET socket, const SOCKET socket6 ) {
-	int i;
+	t_int i;
 
 	for ( i = 0; i < MAX_CONNECTIONS; ++i ) {
 		connections[i] = ZERO_SOCKET;
@@ -250,6 +291,8 @@ static void ServerInit( const SOCKET socket, const SOCKET socket6 ) {
 
 	time_initialized = t_false;
 	check_connections_time = 0;
+
+	connection_count = 0;
 
 	server = socket;
 	server6 = socket6;
@@ -334,11 +377,11 @@ static t_int ServerThread( void *arg ) {
 		// Try to receive data from clients.
 		TryReceive( RECEIVE_TIMEOUT );
 
+		// Process client commands.
+		ProcessClientCommands();
+
 		// Check to see if any of our accepted connections were dropped.
 		TryCheckConnectionTimes();
-
-		// Try to send messages to clients.
-		TrySend();
 	}
 	return 0;
 }

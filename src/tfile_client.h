@@ -27,6 +27,5 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "t_common.h"
 
-t_bool TFile_ClientDownloadFile( const t_char *fileName );
 t_bool TFile_ClientConnect( const t_char *ip, const t_int port );
 void TFile_ShutdownClient( void );

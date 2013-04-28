@@ -32,13 +32,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define RECEIVE_TIMEOUT 100000 // 100 milliseconds.
 
 typedef enum {
-	CMD_DOWNLOAD_FILE,
-	CMD_HEARTBEAT
+	CMD_HEARTBEAT,
+	CMD_DISCONNECT
 } command_t;
 
 typedef enum {
-	EV_FILE_CHUNK_READ,
-	EV_DOWNLOAD_FINISHED
+	EVT_DISCONNECTED,
+	EVT_FILE_CHUNK_READ,
+	EVT_DOWNLOAD_FINISHED
 } event_t;
 
 void TFile_CleanupFailedSocket( const t_char *const error, const SOCKET socket, struct addrinfo *const info );

@@ -148,6 +148,11 @@ void T_DestroyByteStream( t_byteStream_t *const byteStream ) {
 }
 
 
+/*
+====================
+T_BSReset
+====================
+*/
 void T_BSReset( t_byteStream_t *const byteStream ) {
 	byteStream->size = 0;
 	byteStream->readPosition = 0;
@@ -157,11 +162,37 @@ void T_BSReset( t_byteStream_t *const byteStream ) {
 
 /*
 ====================
+T_BSCanRead
+====================
+*/
+t_bool T_BSCanRead( const t_byteStream_t *const byteStream ) {
+	if ( byteStream->readPosition >= byteStream->size )
+		return t_false;
+
+	return t_true;
+}
+
+
+/*
+====================
+T_BSCanWrite
+====================
+*/
+t_bool T_BSCanWrite( const t_byteStream_t *const byteStream ) {
+	if ( byteStream->size >= byteStream->maxSize )
+		return t_false;
+
+	return t_true;
+}
+
+
+/*
+====================
 T_BSWriteByte
 ====================
 */
 void T_BSWriteByte( t_byteStream_t *const byteStream, const t_byte value ) {
-	if ( byteStream->size >= byteStream->maxSize ) {
+	if ( !T_BSCanWrite( byteStream ) ) {
 		T_Error( "T_BSWriteByte: Unable to write byte to stream.\n" );
 		return;
 	}
@@ -176,7 +207,7 @@ T_BSReadByte
 ====================
 */
 t_byte T_BSReadByte( t_byteStream_t *const byteStream ) {
-	if ( byteStream->readPosition > byteStream->size ) {
+	if ( !T_BSCanRead( byteStream ) ) {
 		T_Error( "T_BSReadByte: Unable to read byte from stream.\n" );
 		return 0;
 	}
