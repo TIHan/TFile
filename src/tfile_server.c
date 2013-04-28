@@ -51,12 +51,18 @@ SERVER THREAD
 ============================================================================
 */
 
-
 #define MAX_CONNECTIONS 254
 #define MAX_SOCKETS MAX_CONNECTIONS + 2 // 2 represents IPv4 and IPv6 sockets.
 #define CONNECTION_TIMEOUT 5000 // 5 seconds.
 #define CHECK_CONNECTIONS_INTERVAL 1000 // 1 second.
 #define MAX_EVENT_QUEUE_SIZE 8192
+
+// TODO: Use struct.
+typedef struct {
+	SOCKET socket;
+	t_uint64 time;
+	t_byteStream_t *stream;
+} connection_t;
 
 // Sockets
 static SOCKET server;
